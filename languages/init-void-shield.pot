@@ -1,0 +1,110 @@
+# Copyright (C) 2026 Init HTML
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Init Void Shield 1.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-void-shield\n"
+"POT-Creation-Date: 2026-08-13 12:00:00+07:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2026-08-13 12:00+07:00\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#. Plugin Name
+msgid "Init Void Shield"
+msgstr ""
+
+#. Description
+msgid "Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments. Invisible to humans, a void to bots."
+msgstr ""
+
+#. Author
+msgid "Init HTML"
+msgstr ""
+
+#: init-void-shield.php:44
+msgid "Settings"
+msgstr ""
+
+#: includes/honeypot-core.php:46
+msgid "Your comment is awaiting moderation."
+msgstr ""
+
+#: includes/honeypot-core.php:51
+msgid "Success"
+msgstr ""
+
+#: includes/honeypot-core.php:97
+msgid "If you are human, please leave this field blank."
+msgstr ""
+
+#: includes/honeypot-core.php:100
+msgid "Do not check this box."
+msgstr ""
+
+#: includes/settings-page.php:14 includes/settings-page.php:15
+#: includes/settings-page.php:72
+msgid "Init Void Shield"
+msgstr ""
+
+#: includes/settings-page.php:88
+msgid "Enable Void Shield"
+msgstr ""
+
+#: includes/settings-page.php:93
+msgid "Activate the honeypot defense on comment forms."
+msgstr ""
+
+#: includes/settings-page.php:98
+msgid "Apply to Logged-in Users"
+msgstr ""
+
+#: includes/settings-page.php:103
+msgid "Also verify comments from logged-in users."
+msgstr ""
+
+#: includes/settings-page.php:106
+msgid "By default, logged-in users are trusted and bypass all checks. Enable this if your site has open registration or untrusted members."
+msgstr ""
+
+#: includes/settings-page.php:113
+msgid "Minimum Submit Time"
+msgstr ""
+
+#: includes/settings-page.php:121
+msgid "seconds"
+msgstr ""
+
+#: includes/settings-page.php:123
+msgid "Comments submitted faster than this will be rejected. Humans need time to read and type."
+msgstr ""
+
+#: includes/settings-page.php:128
+msgid "JavaScript Token Delay"
+msgstr ""
+
+#: includes/settings-page.php:136
+msgid "milliseconds"
+msgstr ""
+
+#: includes/settings-page.php:138
+msgid "Delay before the hidden JS token is injected. Catches headless browsers that submit instantly."
+msgstr ""
+
+#: includes/settings-page.php:159
+msgid "Block REST API Comments"
+msgstr ""
+
+#: includes/settings-page.php:165
+msgid "Reject comments submitted directly through the REST API (wp/v2/comments)."
+msgstr ""
+
+#: includes/settings-page.php:168
+msgid "The honeypot and JS token checks above only cover the classic comment form; REST API submissions bypass them entirely. Enable this only if your site does not rely on a headless app or other legitimate client that posts comments via the REST API."
+msgstr ""
+
+#: includes/honeypot-core.php:250
+msgid "Comments submitted via the REST API are not accepted on this site."
+msgstr ""

@@ -1,0 +1,105 @@
+# Vietnamese translation for Init Void Shield
+# Copyright (C) 2026 Init HTML
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Init Void Shield 1.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-void-shield\n"
+"POT-Creation-Date: 2026-08-13 12:00:00+07:00\n"
+"PO-Revision-Date: 2026-08-13 12:00+07:00\n"
+"Last-Translator: Init HTML <hi@inithtml.com>\n"
+"Language-Team: Vietnamese\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: Description
+msgid "Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments. Invisible to humans, a void to bots."
+msgstr "Chống spam bình luận WordPress bằng honeypot, không dùng cơ sở dữ liệu hay JavaScript bên ngoài. Vô hình với người dùng, vô tình với bot."
+
+#: init-void-shield.php:44
+msgid "Settings"
+msgstr "Cài đặt"
+
+#: includes/honeypot-core.php:46
+msgid "Your comment is awaiting moderation."
+msgstr "Bình luận của bạn đang chờ kiểm duyệt."
+
+#: includes/honeypot-core.php:51
+msgid "Success"
+msgstr "Thành công"
+
+#: includes/honeypot-core.php:97
+msgid "If you are human, please leave this field blank."
+msgstr "Nếu bạn là người thật, xin vui lòng BỎ TRỐNG ô này."
+
+#: includes/honeypot-core.php:100
+msgid "Do not check this box."
+msgstr "Đừng check vào ô này."
+
+#: includes/settings-page.php:14 includes/settings-page.php:15
+#: includes/settings-page.php:72
+msgid "Init Void Shield"
+msgstr "Init Void Shield"
+
+#: includes/settings-page.php:88
+msgid "Enable Void Shield"
+msgstr "Bật Void Shield"
+
+#: includes/settings-page.php:93
+msgid "Activate the honeypot defense on comment forms."
+msgstr "Kích hoạt hệ thống phòng thủ honeypot trên form bình luận."
+
+#: includes/settings-page.php:98
+msgid "Apply to Logged-in Users"
+msgstr "Áp dụng cho người dùng đã đăng nhập"
+
+#: includes/settings-page.php:103
+msgid "Also verify comments from logged-in users."
+msgstr "Cũng xác minh bình luận từ người dùng đã đăng nhập."
+
+#: includes/settings-page.php:106
+msgid "By default, logged-in users are trusted and bypass all checks. Enable this if your site has open registration or untrusted members."
+msgstr "Mặc định, người dùng đã đăng nhập được tin tưởng và bỏ qua mọi kiểm tra. Bật tùy chọn này nếu site của bạn cho đăng ký công khai hoặc có thành viên không đáng tin."
+
+#: includes/settings-page.php:113
+msgid "Minimum Submit Time"
+msgstr "Thời gian gửi tối thiểu"
+
+#: includes/settings-page.php:121
+msgid "seconds"
+msgstr "giây"
+
+#: includes/settings-page.php:123
+msgid "Comments submitted faster than this will be rejected. Humans need time to read and type."
+msgstr "Bình luận gửi nhanh hơn ngưỡng này sẽ bị từ chối. Con người cần thời gian để đọc và gõ."
+
+#: includes/settings-page.php:128
+msgid "JavaScript Token Delay"
+msgstr "Độ trễ Token JavaScript"
+
+#: includes/settings-page.php:136
+msgid "milliseconds"
+msgstr "mili giây"
+
+#: includes/settings-page.php:138
+msgid "Delay before the hidden JS token is injected. Catches headless browsers that submit instantly."
+msgstr "Độ trễ trước khi token JS ẩn được bơm vào. Bắt các trình duyệt headless gửi ngay lập tức."
+
+#: includes/settings-page.php:159
+msgid "Block REST API Comments"
+msgstr "Chặn bình luận qua REST API"
+
+#: includes/settings-page.php:165
+msgid "Reject comments submitted directly through the REST API (wp/v2/comments)."
+msgstr "Từ chối bình luận gửi trực tiếp qua REST API (wp/v2/comments)."
+
+#: includes/settings-page.php:168
+msgid "The honeypot and JS token checks above only cover the classic comment form; REST API submissions bypass them entirely. Enable this only if your site does not rely on a headless app or other legitimate client that posts comments via the REST API."
+msgstr "Các kiểm tra honeypot và token JS ở trên chỉ áp dụng cho form bình luận cổ điển; bình luận gửi qua REST API sẽ né hoàn toàn các kiểm tra đó. Chỉ bật tùy chọn này nếu site của bạn không có app headless hay client hợp lệ nào khác gửi bình luận qua REST API."
+
+#: includes/honeypot-core.php:250
+msgid "Comments submitted via the REST API are not accepted on this site."
+msgstr "Bình luận gửi qua REST API không được chấp nhận trên site này."
