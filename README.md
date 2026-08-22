@@ -1,4 +1,4 @@
-# Init Void Shield – Zero-DB, Honeypot, Bot-Blocking
+# Init Void Shield – Zero-DB, Honeypot, Anti-Spam
 
 > 5-layer honeypot anti-spam for WordPress comments. Invisible to humans, a void to bots.
 
