@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2
+Stable tag: 1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -71,7 +71,7 @@ Yes. Enable **Apply to Logged-in Users** in the settings if your site has open r
 Not by default. The core layers only run on the classic comment form (`preprocess_comment`); comments posted directly to `wp/v2/comments` never carry a honeypot or JS token, so those checks don't apply. The optional "Block REST API Comments" setting is available to close that endpoint entirely if you do not use a headless app or other legitimate REST client for comments.
 
 = Are the WordPress login/registration/lost-password guards enabled by default? =
-No, all three are off by default since they guard authentication itself. Turn them on individually under **WordPress Core Forms** in the settings, and confirm your own login flow still works afterward. Each only covers WordPress's own default form markup at `wp-login.php` — a custom login page/plugin, or Multisite's `wp-signup.php` registration flow, renders different markup and isn't covered.
+No, all three are off by default since they guard authentication itself. Turn them on individually under **WordPress Core Forms** in the settings, and confirm your own login flow still works afterward. Each covers WordPress's own default form markup at `wp-login.php`, and the login guard also covers `wp_login_form()` when used on the front end (e.g. a widget or theme template). A custom login page/plugin, or Multisite's `wp-signup.php` registration flow, renders different markup and isn't covered. Each guard can also be force-disabled per request with a dedicated filter (`init_plugin_suite_void_shield_skip_login_verification`, `..._skip_register_verification`, `..._skip_lostpassword_verification`), which takes priority over the settings-page toggle.
 
 = Are the Contact Form 7 / WPForms / Gravity Forms integrations enabled by default? =
 No. Each is off by default and only takes effect if the matching plugin is active — the settings page shows a "detected / not detected" status next to each toggle.
@@ -89,6 +89,10 @@ Only aggregate counters (a total, a breakdown by channel, a breakdown by block r
 Yes. A comprehensive filter API is available. See the documentation on GitHub.
 
 == Changelog ==
+
+= 1.3 – August 24, 2026 =
+* Fixed: the login guard now also covers `wp_login_form()` (used to place a login form anywhere on the front end, e.g. a widget or theme template). Previously only the native wp-login.php form was guarded; a front-end `wp_login_form()` submission carried no honeypot fields and was always rejected with "Invalid login attempt." once the login guard was enabled.
+* Added three developer filters — `init_plugin_suite_void_shield_skip_login_verification`, `init_plugin_suite_void_shield_skip_register_verification`, and `init_plugin_suite_void_shield_skip_lostpassword_verification` — to force-disable each WordPress Core Forms guard for a given request regardless of its settings-page toggle.
 
 = 1.2 – August 23, 2026 =
 * Added optional honeypot guards for the default WordPress login, registration, and lost-password forms (each off by default; enable individually under WordPress Core Forms).

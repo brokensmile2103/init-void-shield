@@ -3,7 +3,7 @@
  * Plugin Name: Init Void Shield
  * Plugin URI:  https://inithtml.com/plugin/init-void-shield/
  * Description: Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments, core forms, and popular form plugins. Invisible to humans, a void to bots.
- * Version:     1.2
+ * Version:     1.3
  * Author:      Init HTML
  * Author URI:  https://inithtml.com/
  * Text Domain: init-void-shield
@@ -20,7 +20,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ===== CONSTANTS ===== //
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION', '1.2' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION', '1.3' );
 define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_SLUG', 'init-void-shield' );
 define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_OPTION', 'init_plugin_suite_void_shield_settings' );
 define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_URL', plugin_dir_url( __FILE__ ) );
