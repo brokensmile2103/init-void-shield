@@ -3,11 +3,11 @@
  * WordPress Core Forms Guard (optional, opt-in)
  *
  * Honeypot protection for the default WP login, registration, and lost
- * password forms. Each covers WordPress's own default markup at
- * wp-login.php, plus wp_login_form() when used on the front end (e.g. a
- * [loginform] block/widget or a theme template); a custom login page/plugin
- * or Multisite's wp-signup.php flow renders different forms and is not
- * covered here.
+ * password forms, plus the Multisite site/user signup form. Each covers
+ * WordPress's own default markup at wp-login.php (and wp-signup.php for
+ * Multisite), plus wp_login_form() when used on the front end (e.g. a
+ * [loginform] block/widget or a theme template); a custom login page or
+ * registration plugin renders different forms and is not covered here.
  *
  * @package Init_Void_Shield
  */
@@ -65,8 +65,8 @@ add_filter( 'login_form_middle', 'init_plugin_suite_void_shield_render_login_gua
 /**
  * Render the honeypot guard on the front-end wp_login_form() login form.
  *
- * wp_login_form() (used to place a login form anywhere on the front end,
- * e.g. via a widget, a block, or a theme template) builds its own markup
+ * The wp_login_form() function (used to place a login form anywhere on the
+ * front end, e.g. via a widget, a block, or a theme template) builds its own markup
  * and never fires the `login_form` action that the native wp-login.php
  * screen uses above, so that hook never gets a chance to run for it. Every
  * submission is still routed through the same `authenticate` filter chain
@@ -263,4 +263,77 @@ function init_plugin_suite_void_shield_guard_lostpassword( $errors ) {
 			)
 		);
 	}
+}
+
+// ------------------------------------------------------------------
+// 4. Multisite signup form (wp-signup.php)
+// ------------------------------------------------------------------
+
+/**
+ * Determine whether the Multisite signup guard should be active for this request.
+ *
+ * @return bool
+ */
+function init_plugin_suite_void_shield_multisite_signup_guard_enabled() {
+	if ( ! is_multisite() ) {
+		return false;
+	}
+
+	if ( '1' !== get_option( 'init_plugin_suite_void_shield_enable_multisite_signup', '0' ) ) {
+		return false;
+	}
+
+	/**
+	 * Force-disable the Multisite signup form guard, regardless of the
+	 * settings-page toggle.
+	 *
+	 * @param bool $skip Whether to skip the Multisite signup guard. Default false.
+	 */
+	return ! apply_filters( 'init_plugin_suite_void_shield_skip_multisite_signup_verification', false );
+}
+
+add_action( 'signup_extra_fields', 'init_plugin_suite_void_shield_render_multisite_signup_guard' );
+
+/**
+ * Render the honeypot guard on the default wp-signup.php form.
+ *
+ * @return void
+ */
+function init_plugin_suite_void_shield_render_multisite_signup_guard() {
+	if ( ! init_plugin_suite_void_shield_multisite_signup_guard_enabled() ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built internally with esc_attr()/esc_html() on every value, see field-guard.php.
+	echo init_plugin_suite_void_shield_build_guard_markup( 'multisite_signup' );
+}
+
+add_filter( 'wpmu_validate_user_signup', 'init_plugin_suite_void_shield_guard_multisite_signup' );
+
+/**
+ * Reject Multisite site/user signups that fail the honeypot check.
+ *
+ * @param array $result Signup validation result, including an 'errors' WP_Error object.
+ * @return array
+ */
+function init_plugin_suite_void_shield_guard_multisite_signup( $result ) {
+	if ( ! init_plugin_suite_void_shield_multisite_signup_guard_enabled() ) {
+		return $result;
+	}
+
+	if ( ! isset( $result['errors'] ) || ! is_wp_error( $result['errors'] ) ) {
+		return $result;
+	}
+
+	if ( ! init_plugin_suite_void_shield_is_submission_human( 'multisite_signup' ) ) {
+		$result['errors']->add(
+			'init_void_shield_blocked',
+			apply_filters(
+				'init_plugin_suite_void_shield_multisite_signup_blocked_message',
+				__( 'Your request could not be processed. Please try again.', 'init-void-shield' )
+			)
+		);
+	}
+
+	return $result;
 }

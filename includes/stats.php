@@ -23,14 +23,18 @@ function init_plugin_suite_void_shield_get_channel_from_context( $context ) {
 	$context = (string) $context;
 
 	$map = array(
-		'comment_'     => 'comment',
-		'rest_comment' => 'rest',
-		'login'        => 'login',
-		'register'     => 'register',
-		'lostpassword' => 'lostpassword',
-		'cf7_'         => 'cf7',
-		'wpforms_'     => 'wpforms',
-		'gf_'          => 'gravityforms',
+		'comment_'             => 'comment',
+		'rest_comment'         => 'rest',
+		'login'                => 'login',
+		'register'             => 'register',
+		'lostpassword'         => 'lostpassword',
+		'multisite_signup'     => 'multisite',
+		'cf7_'                 => 'cf7',
+		'wpforms_'             => 'wpforms',
+		'gf_'                  => 'gravityforms',
+		'woocommerce_register' => 'woocommerce',
+		'bbpress_'             => 'bbpress',
+		'buddypress_register'  => 'buddypress',
 	);
 
 	foreach ( $map as $needle => $channel ) {
@@ -113,4 +117,115 @@ function init_plugin_suite_void_shield_get_stats() {
  */
 function init_plugin_suite_void_shield_reset_stats() {
 	delete_option( INIT_PLUGIN_SUITE_VOID_SHIELD_STATS_OPTION );
+}
+
+// ------------------------------------------------------------------
+// Dashboard widget (optional, opt-in, off by default)
+// ------------------------------------------------------------------
+
+add_action( 'wp_dashboard_setup', 'init_plugin_suite_void_shield_maybe_register_dashboard_widget' );
+
+/**
+ * Register the "Blocked Submissions" dashboard widget, only if the site
+ * owner has opted in and the current user is allowed to see it.
+ *
+ * @return void
+ */
+function init_plugin_suite_void_shield_maybe_register_dashboard_widget() {
+	if ( '1' !== get_option( 'init_plugin_suite_void_shield_enable_dashboard_widget', '0' ) ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	wp_add_dashboard_widget(
+		'init_plugin_suite_void_shield_dashboard_widget',
+		__( 'Init Void Shield – Blocked Submissions', 'init-void-shield' ),
+		'init_plugin_suite_void_shield_render_dashboard_widget'
+	);
+}
+
+/**
+ * Render the dashboard widget content.
+ *
+ * Uses inline `style` attributes only (no `<style>` block), matching the
+ * approach already used elsewhere in this plugin's admin screens.
+ *
+ * @return void
+ */
+function init_plugin_suite_void_shield_render_dashboard_widget() {
+	$stats = init_plugin_suite_void_shield_get_stats();
+
+	if ( empty( $stats['total'] ) ) {
+		echo '<p>' . esc_html__( 'No submissions have been blocked yet.', 'init-void-shield' ) . '</p>';
+		return;
+	}
+
+	$channel_labels = init_plugin_suite_void_shield_get_channel_labels();
+	$reason_labels  = init_plugin_suite_void_shield_get_reason_labels();
+
+	echo '<p style="margin-top:0;">';
+	echo '<strong style="font-size:20px;line-height:1;">' . esc_html( number_format_i18n( absint( $stats['total'] ) ) ) . '</strong> ';
+	echo esc_html__( 'blocked in total', 'init-void-shield' );
+
+	if ( ! empty( $stats['last_blocked'] ) ) {
+		echo '<br /><span style="color:#646970;">';
+		printf(
+			/* translators: %s: human-readable time difference, e.g. "3 hours". */
+			esc_html__( 'Last blocked %s ago', 'init-void-shield' ),
+			esc_html( human_time_diff( absint( $stats['last_blocked'] ), time() ) )
+		);
+		echo '</span>';
+	}
+	echo '</p>';
+
+	init_plugin_suite_void_shield_render_dashboard_widget_breakdown(
+		isset( $stats['by_channel'] ) ? $stats['by_channel'] : array(),
+		$channel_labels,
+		__( 'Top channels', 'init-void-shield' )
+	);
+
+	init_plugin_suite_void_shield_render_dashboard_widget_breakdown(
+		isset( $stats['by_reason'] ) ? $stats['by_reason'] : array(),
+		$reason_labels,
+		__( 'Top reasons', 'init-void-shield' )
+	);
+
+	echo '<p style="margin-bottom:0;">';
+	echo '<a href="' . esc_url( admin_url( 'options-general.php?page=' . INIT_PLUGIN_SUITE_VOID_SHIELD_SLUG ) ) . '">';
+	echo esc_html__( 'View full statistics & settings', 'init-void-shield' ) . ' &rarr;';
+	echo '</a>';
+	echo '</p>';
+}
+
+/**
+ * Render a small, top-5 breakdown table for the dashboard widget.
+ *
+ * @param array  $counts Associative array of key => count.
+ * @param array  $labels Human-friendly labels for the keys.
+ * @param string $title  Section title.
+ * @return void
+ */
+function init_plugin_suite_void_shield_render_dashboard_widget_breakdown( $counts, $labels, $title ) {
+	if ( empty( $counts ) || ! is_array( $counts ) ) {
+		return;
+	}
+
+	arsort( $counts );
+	$counts = array_slice( $counts, 0, 5, true );
+
+	echo '<p style="margin-bottom:4px;"><strong>' . esc_html( $title ) . '</strong></p>';
+	echo '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">';
+
+	foreach ( $counts as $key => $count ) {
+		$label = isset( $labels[ $key ] ) ? $labels[ $key ] : $key;
+		echo '<tr>';
+		echo '<td style="padding:2px 0;">' . esc_html( $label ) . '</td>';
+		echo '<td style="padding:2px 0;text-align:right;font-weight:600;">' . esc_html( number_format_i18n( absint( $count ) ) ) . '</td>';
+		echo '</tr>';
+	}
+
+	echo '</table>';
 }

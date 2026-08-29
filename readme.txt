@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3
+Stable tag: 1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,13 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 - **Custom field prefix** — change the honeypot field-name prefix if you suspect a spammer has targeted your site specifically.
 - **CSS trap rotation** — randomizes which hiding technique and field order is used on every render, so bots can't learn one fixed pattern.
 - **Lightweight statistics** — optional counters of blocked submissions by channel and reason, stored in a single non-autoloaded option (no per-submission logs, no personal data).
+
+**New in 1.4:**
+
+- **Context-bound, self-expiring time tokens** — the signed time token is now bound to the specific form it was issued for and rejected once it goes stale, hardening the core anti-replay layer.
+- **Optional real-interaction check** — under Advanced Protection, require at least one genuine mouse, keyboard, touch, or scroll event before a submission is accepted, catching bots that simply wait out the JS delay instead of interacting with the page. Off by default.
+- **Three more integrations** — WooCommerce (My Account registration), bbPress (New Topic and Reply forms), and BuddyPress (registration), plus a guard for the Multisite site/user signup form (`wp-signup.php`). Each is off by default, same as the existing integrations.
+- **Optional Dashboard widget** — a compact "Blocked Submissions" summary on the WordPress Dashboard, off by default, visible only to users who can manage options.
 
 **Key design goals:**
 
@@ -76,6 +83,21 @@ No, all three are off by default since they guard authentication itself. Turn th
 = Are the Contact Form 7 / WPForms / Gravity Forms integrations enabled by default? =
 No. Each is off by default and only takes effect if the matching plugin is active — the settings page shows a "detected / not detected" status next to each toggle.
 
+= Are the WooCommerce / bbPress / BuddyPress integrations enabled by default? =
+No, same as the other integrations: each is off by default and only takes effect if the matching plugin is active. WooCommerce guards the "My Account" registration form; bbPress guards the New Topic and Reply forms; BuddyPress guards the registration (signup) form. The Multisite signup guard (`wp-signup.php`) only has an effect on a Multisite install and is also off by default.
+
+= Why aren't Ninja Forms or Forminator supported? =
+Both build their forms client-side and collect submitted data through their own JavaScript field model rather than serializing the whole `<form>` element, so a honeypot field simply appended to the page would not reliably be sent to the server — it would look like protection without actually doing anything. Both also already ship their own built-in honeypot field. Support may be reconsidered if a reliable hook becomes available.
+
+= What is the Maximum Token Age setting? =
+Each guard issues a signed token good for a limited time window: too fast (below Minimum Submit Time) and too old (above Maximum Token Age) are both rejected. The ceiling exists so a token cannot be captured once and replayed indefinitely; the default of 1 hour is generous enough for a visitor who takes their time filling out a form. Increase it if legitimate visitors on your site routinely take longer than that.
+
+= I updated from an older version and my Minimum Submit Time / JS Token Delay no longer behaves the way I remembered — why? =
+Versions before 1.4 had a bug where these two settings were saved correctly but never actually read back during verification, so the plugin always silently enforced the defaults (3 seconds / 1000ms) no matter what was configured. 1.4 fixes this, so a custom value you set earlier may now be enforced for the first time. This is a bug fix, not a new restriction — just double-check both values on the settings page after updating.
+
+= What does "Require Real User Interaction" do? =
+When enabled, a submission is only accepted if the browser recorded at least one real mouse, keyboard, touch, or scroll event before the JS token fires. It targets bots that wait out the JavaScript Token Delay instead of a real page visit. It's off by default and works best paired with a JS delay of at least 1-2 seconds.
+
 = Can I change the honeypot field names? =
 Yes. Set a **Custom Field Prefix** under Advanced Protection. Field names are still dynamically derived per context and site salt on top of that prefix.
 
@@ -85,10 +107,23 @@ No. It only reads `navigator.webdriver` and the browser window size on the visit
 = What does the statistics feature store? =
 Only aggregate counters (a total, a breakdown by channel, a breakdown by block reason, and a last-blocked timestamp) in one non-autoloaded option. No per-submission logs, IP addresses, or personal data are recorded. It can be turned off or reset from the settings page at any time.
 
+= Is the Dashboard widget on by default? =
+No. Enable **Show Dashboard Widget** under Statistics. It's only visible to users who can manage options, and only shows the same aggregate counters as the settings page (no per-submission data).
+
 = Can developers customize the behavior? =
 Yes. A comprehensive filter API is available. See the documentation on GitHub.
 
 == Changelog ==
+
+= 1.4 – August 30, 2026 =
+* Security: the signed time token is now bound to the specific guard context it was issued for (previously it was only a function of the timestamp, so a valid token captured from one form — e.g. a public comment form — could in theory be replayed against a different, more sensitive context, such as the login guard). Field names already differed per context, but the token itself did not.
+* Security: added a **Maximum Token Age** setting (default 1 hour) so a token cannot be captured once and cached for an unlimited-time replay. Submissions carrying a token older than this are now rejected with a new `token_expired` block reason.
+* Fixed: the **Minimum Submit Time** and **JavaScript Token Delay** settings on the settings page were not actually being read during verification/rendering — the code always used the filter defaults (3 seconds / 1000ms) regardless of what was saved. Both settings now take effect as expected; the corresponding developer filters still apply on top. **Note for existing users:** if you had previously changed either value away from the default, it silently had no effect before — after updating it will now be genuinely enforced, so it's worth revisiting both values on the settings page to confirm they're still what you want.
+* Added an optional **Require Real User Interaction** check under Advanced Protection (off by default): also requires at least one real mouse, keyboard, touch, or scroll event before a submission is accepted, to catch bots that simply wait out the JS delay without interacting with the page.
+* Added optional honeypot integrations for **WooCommerce** (My Account registration form), **bbPress** (New Topic and Reply forms), and **BuddyPress** (registration form) — each off by default, only activates if the matching plugin is active.
+* Added an optional **Multisite signup guard** for `wp-signup.php` (off by default, only has an effect on a Multisite install).
+* Added an optional **Dashboard widget** (off by default) showing a compact "Blocked Submissions" summary with the top blocked channels and reasons.
+* Updated translation template (`.pot`) and the Vietnamese translation for all new strings.
 
 = 1.3 – August 24, 2026 =
 * Fixed: the login guard now also covers `wp_login_form()` (used to place a login form anywhere on the front end, e.g. a widget or theme template). Previously only the native wp-login.php form was guarded; a front-end `wp_login_form()` submission carried no honeypot fields and was always rejected with "Invalid login attempt." once the login guard was enabled.

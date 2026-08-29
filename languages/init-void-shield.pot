@@ -2,34 +2,49 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Void Shield 1.2\n"
+"Project-Id-Version: Init Void Shield 1.4\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-void-shield\n"
-"POT-Creation-Date: 2026-08-23 12:00:00+07:00\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-08-23 12:00+07:00\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"POT-Creation-Date: 2026-08-29T18:33:50+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: init-void-shield\n"
 
-#. Description
-msgid "Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments, core forms, and popular form plugins. Invisible to humans, a void to bots."
-msgstr ""
-
-#. Author
-msgid "Init HTML"
-msgstr ""
-
-#. Plugin Name
+#. Plugin Name of the plugin
+#: init-void-shield.php
 #: includes/settings-page.php:18
 msgid "Init Void Shield"
 msgstr ""
 
-#: includes/field-guard.php:151
+#. Plugin URI of the plugin
+#: init-void-shield.php
+msgid "https://inithtml.com/plugin/init-void-shield/"
+msgstr ""
+
+#. Description of the plugin
+#: init-void-shield.php
+msgid "Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments, core forms, and popular form plugins. Invisible to humans, a void to bots."
+msgstr ""
+
+#. Author of the plugin
+#: init-void-shield.php
+msgid "Init HTML"
+msgstr ""
+
+#. Author URI of the plugin
+#: init-void-shield.php
+msgid "https://inithtml.com/"
+msgstr ""
+
+#: includes/field-guard.php:174
 msgid "If you are human, please leave this field blank."
 msgstr ""
 
-#: includes/field-guard.php:155
+#: includes/field-guard.php:178
 msgid "Do not check this box."
 msgstr ""
 
@@ -45,6 +60,17 @@ msgstr ""
 msgid "Comments submitted via the REST API are not accepted on this site."
 msgstr ""
 
+#: includes/integration-bbpress.php:77
+#: includes/integration-bbpress.php:119
+msgid "<strong>Error</strong>: Your submission could not be processed. Please try again."
+msgstr ""
+
+#: includes/integration-buddypress.php:81
+#: includes/integration-woocommerce.php:78
+#: includes/wp-core-forms.php:188
+msgid "Registration could not be completed. Please try again."
+msgstr ""
+
 #: includes/integration-gravityforms.php:72
 msgid "Blocked by honeypot guard."
 msgstr ""
@@ -57,299 +83,433 @@ msgstr ""
 msgid "Init Void Shield Settings"
 msgstr ""
 
-#: includes/settings-page.php:227
+#: includes/settings-page.php:301
 msgid "You do not have permission to do this."
 msgstr ""
 
-#: includes/settings-page.php:257 includes/settings-page.php:354
+#: includes/settings-page.php:331
+#: includes/settings-page.php:447
 msgid "Comments"
 msgstr ""
 
-#: includes/settings-page.php:258
+#: includes/settings-page.php:332
 msgid "REST API"
 msgstr ""
 
-#: includes/settings-page.php:259
+#: includes/settings-page.php:333
 msgid "Login form"
 msgstr ""
 
-#: includes/settings-page.php:260
+#: includes/settings-page.php:334
 msgid "Registration form"
 msgstr ""
 
-#: includes/settings-page.php:261
+#: includes/settings-page.php:335
 msgid "Lost password form"
 msgstr ""
 
-#: includes/settings-page.php:262 includes/settings-page.php:502
+#: includes/settings-page.php:336
+msgid "Multisite signup form"
+msgstr ""
+
+#: includes/settings-page.php:337
+#: includes/settings-page.php:637
 msgid "Contact Form 7"
 msgstr ""
 
-#: includes/settings-page.php:263 includes/settings-page.php:517
+#: includes/settings-page.php:338
+#: includes/settings-page.php:652
 msgid "WPForms"
 msgstr ""
 
-#: includes/settings-page.php:264 includes/settings-page.php:532
+#: includes/settings-page.php:339
+#: includes/settings-page.php:667
 msgid "Gravity Forms"
 msgstr ""
 
-#: includes/settings-page.php:265
+#: includes/settings-page.php:340
+msgid "WooCommerce registration"
+msgstr ""
+
+#: includes/settings-page.php:341
+msgid "bbPress topic/reply"
+msgstr ""
+
+#: includes/settings-page.php:342
+msgid "BuddyPress registration"
+msgstr ""
+
+#: includes/settings-page.php:343
 msgid "Other"
 msgstr ""
 
-#: includes/settings-page.php:276
+#: includes/settings-page.php:354
 msgid "Filled a hidden trap field"
 msgstr ""
 
-#: includes/settings-page.php:277
+#: includes/settings-page.php:355
 msgid "Missing or invalid JS token"
 msgstr ""
 
-#: includes/settings-page.php:278
+#: includes/settings-page.php:356
 msgid "Headless browser detected"
 msgstr ""
 
-#: includes/settings-page.php:279
+#: includes/settings-page.php:357
+msgid "No real interaction detected"
+msgstr ""
+
+#: includes/settings-page.php:358
 msgid "Missing time token"
 msgstr ""
 
-#: includes/settings-page.php:280
+#: includes/settings-page.php:359
 msgid "Invalid time token"
 msgstr ""
 
-#: includes/settings-page.php:281
+#: includes/settings-page.php:360
+msgid "Time token expired"
+msgstr ""
+
+#: includes/settings-page.php:361
 msgid "Submitted too fast"
 msgstr ""
 
-#: includes/settings-page.php:282
+#: includes/settings-page.php:362
 msgid "No user agent header"
 msgstr ""
 
-#: includes/settings-page.php:283
+#: includes/settings-page.php:363
 msgid "Invalid post ID"
 msgstr ""
 
-#: includes/settings-page.php:284
+#: includes/settings-page.php:364
 msgid "REST API endpoint blocked"
 msgstr ""
 
-#: includes/settings-page.php:296
+#: includes/settings-page.php:376
 msgid "Detected on this site."
 msgstr ""
 
-#: includes/settings-page.php:300
+#: includes/settings-page.php:380
 msgid "Not detected on this site. Install and activate it first."
 msgstr ""
 
-#: includes/settings-page.php:339
+#: includes/settings-page.php:432
 msgid "Statistics have been reset."
 msgstr ""
 
-#: includes/settings-page.php:359
-msgid "Enable Void Shield"
+#: includes/settings-page.php:452
+msgid "Enable Init Void Shield"
 msgstr ""
 
-#: includes/settings-page.php:365
+#: includes/settings-page.php:458
 msgid "Activate the honeypot defense on comment forms."
 msgstr ""
 
-#: includes/settings-page.php:373
+#: includes/settings-page.php:466
 msgid "Apply to Logged-in Users"
 msgstr ""
 
-#: includes/settings-page.php:379
+#: includes/settings-page.php:472
 msgid "Also verify comments from logged-in users."
 msgstr ""
 
-#: includes/settings-page.php:382
+#: includes/settings-page.php:475
 msgid "By default, logged-in users are trusted and bypass all checks. Enable this if your site has open registration or untrusted members."
 msgstr ""
 
-#: includes/settings-page.php:390
+#: includes/settings-page.php:483
 msgid "Minimum Submit Time"
 msgstr ""
 
-#: includes/settings-page.php:399
+#: includes/settings-page.php:492
+#: includes/settings-page.php:530
 msgid "seconds"
 msgstr ""
 
-#: includes/settings-page.php:401
+#: includes/settings-page.php:494
 msgid "Comments submitted faster than this will be rejected. Humans need time to read and type."
 msgstr ""
 
-#: includes/settings-page.php:409
+#: includes/settings-page.php:502
 msgid "JavaScript Token Delay"
 msgstr ""
 
-#: includes/settings-page.php:418
+#: includes/settings-page.php:511
 msgid "milliseconds"
 msgstr ""
 
-#: includes/settings-page.php:420
+#: includes/settings-page.php:513
 msgid "Delay before the hidden JS token is injected. Catches headless browsers that submit instantly."
 msgstr ""
 
-#: includes/settings-page.php:428
+#: includes/settings-page.php:521
+msgid "Maximum Token Age"
+msgstr ""
+
+#: includes/settings-page.php:532
+msgid "A submission carrying a token older than this is rejected, so a token cannot be captured once and replayed indefinitely. Increase this if visitors on your site often take a long time before submitting."
+msgstr ""
+
+#: includes/settings-page.php:540
 msgid "Block REST API Comments"
 msgstr ""
 
-#: includes/settings-page.php:434
+#: includes/settings-page.php:546
 msgid "Reject comments submitted directly through the REST API (wp/v2/comments)."
 msgstr ""
 
-#: includes/settings-page.php:437
+#: includes/settings-page.php:549
 msgid "The honeypot and JS token checks above only cover the classic comment form; REST API submissions bypass them entirely. Enable this only if your site does not rely on a headless app or other legitimate client that posts comments via the REST API."
 msgstr ""
 
-#: includes/settings-page.php:443
+#: includes/settings-page.php:555
 msgid "WordPress Core Forms"
 msgstr ""
 
-#: includes/settings-page.php:445
+#: includes/settings-page.php:557
 msgid "Optional honeypot protection for the default WordPress login, registration, and lost-password forms at wp-login.php. Disabled by default, since these guard authentication itself — review your setup after enabling."
 msgstr ""
 
-#: includes/settings-page.php:451
+#: includes/settings-page.php:563
 msgid "Guard Login Form"
 msgstr ""
 
-#: includes/settings-page.php:457
+#: includes/settings-page.php:569
 msgid "Protect the default WP login form against automated login attempts."
 msgstr ""
 
-#: includes/settings-page.php:465
+#: includes/settings-page.php:577
 msgid "Guard Registration Form"
 msgstr ""
 
-#: includes/settings-page.php:471
+#: includes/settings-page.php:583
 msgid "Protect the default WP registration form (wp-login.php?action=register)."
 msgstr ""
 
-#: includes/settings-page.php:474
+#: includes/settings-page.php:586
 msgid "Only applies if user registration is open. Multisite signup (wp-signup.php) uses a different form and is not covered."
 msgstr ""
 
-#: includes/settings-page.php:482
+#: includes/settings-page.php:594
 msgid "Guard Lost Password Form"
 msgstr ""
 
-#: includes/settings-page.php:488
+#: includes/settings-page.php:600
 msgid "Protect the default WP lost-password form."
 msgstr ""
 
-#: includes/settings-page.php:494
-msgid "Form Plugin Integrations"
-msgstr ""
-
-#: includes/settings-page.php:496
-msgid "Optional honeypot protection for popular third-party form plugins. Each toggle only takes effect if the corresponding plugin is active."
-msgstr ""
-
-#: includes/settings-page.php:508
-msgid "Add the honeypot guard to all Contact Form 7 forms."
-msgstr ""
-
-#: includes/settings-page.php:523
-msgid "Add the honeypot guard to all WPForms forms."
-msgstr ""
-
-#: includes/settings-page.php:538
-msgid "Add the honeypot guard to all Gravity Forms forms."
-msgstr ""
-
-#: includes/settings-page.php:545
-msgid "Advanced Protection"
-msgstr ""
-
-#: includes/settings-page.php:550
-msgid "Custom Field Prefix"
-msgstr ""
-
-#: includes/settings-page.php:560
-msgid "Prefix used to build the hidden honeypot field names (lowercase letters, numbers, underscore only). Change this if you suspect a spammer has targeted your site specifically."
-msgstr ""
-
-#: includes/settings-page.php:568
-msgid "CSS Trap Rotation"
-msgstr ""
-
-#: includes/settings-page.php:574
-msgid "Randomize the CSS technique and field order used to hide honeypot traps on every render."
-msgstr ""
-
-#: includes/settings-page.php:577
-msgid "Makes it harder for CSS-aware bots to learn a single fixed pattern. Traps remain invisible to humans either way."
-msgstr ""
-
-#: includes/settings-page.php:585
-msgid "Headless Browser Detection"
-msgstr ""
-
-#: includes/settings-page.php:591
-msgid "Flag common automation signals (navigator.webdriver, zero-size browser window) picked up by the JS token script."
-msgstr ""
-
-#: includes/settings-page.php:594
-msgid "Lightweight, client-side only, no external calls. Disable this if you use browser-automation tools to test submissions on your own site."
-msgstr ""
-
-#: includes/settings-page.php:600
-msgid "Statistics"
-msgstr ""
-
-#: includes/settings-page.php:605
-msgid "Track Blocked Submissions"
-msgstr ""
-
-#: includes/settings-page.php:611
-msgid "Keep lightweight counters of blocked submissions, shown below."
+#: includes/settings-page.php:608
+msgid "Guard Multisite Signup Form"
 msgstr ""
 
 #: includes/settings-page.php:614
+msgid "Protect the site/user signup form at wp-signup.php."
+msgstr ""
+
+#: includes/settings-page.php:619
+msgid "Multisite detected."
+msgstr ""
+
+#: includes/settings-page.php:621
+msgid "This site is not a Multisite network; this guard has no effect here."
+msgstr ""
+
+#: includes/settings-page.php:629
+msgid "Form Plugin Integrations"
+msgstr ""
+
+#: includes/settings-page.php:631
+msgid "Optional honeypot protection for popular third-party form plugins. Each toggle only takes effect if the corresponding plugin is active."
+msgstr ""
+
+#: includes/settings-page.php:643
+msgid "Add the honeypot guard to all Contact Form 7 forms."
+msgstr ""
+
+#: includes/settings-page.php:658
+msgid "Add the honeypot guard to all WPForms forms."
+msgstr ""
+
+#: includes/settings-page.php:673
+msgid "Add the honeypot guard to all Gravity Forms forms."
+msgstr ""
+
+#: includes/settings-page.php:680
+msgid "Community & E-commerce Integrations"
+msgstr ""
+
+#: includes/settings-page.php:682
+msgid "Optional honeypot protection for WooCommerce, bbPress, and BuddyPress. Each toggle only takes effect if the corresponding plugin is active."
+msgstr ""
+
+#: includes/settings-page.php:688
+msgid "WooCommerce Registration"
+msgstr ""
+
+#: includes/settings-page.php:694
+msgid "Add the honeypot guard to the WooCommerce \"My Account\" registration form."
+msgstr ""
+
+#: includes/settings-page.php:703
+msgid "bbPress Topics & Replies"
+msgstr ""
+
+#: includes/settings-page.php:709
+msgid "Add the honeypot guard to the New Topic and Reply forms."
+msgstr ""
+
+#: includes/settings-page.php:718
+msgid "BuddyPress Registration"
+msgstr ""
+
+#: includes/settings-page.php:724
+msgid "Add the honeypot guard to the BuddyPress signup form."
+msgstr ""
+
+#: includes/settings-page.php:731
+msgid "Advanced Protection"
+msgstr ""
+
+#: includes/settings-page.php:736
+msgid "Custom Field Prefix"
+msgstr ""
+
+#: includes/settings-page.php:746
+msgid "Prefix used to build the hidden honeypot field names (lowercase letters, numbers, underscore only). Change this if you suspect a spammer has targeted your site specifically."
+msgstr ""
+
+#: includes/settings-page.php:754
+msgid "CSS Trap Rotation"
+msgstr ""
+
+#: includes/settings-page.php:760
+msgid "Randomize the CSS technique and field order used to hide honeypot traps on every render."
+msgstr ""
+
+#: includes/settings-page.php:763
+msgid "Makes it harder for CSS-aware bots to learn a single fixed pattern. Traps remain invisible to humans either way."
+msgstr ""
+
+#: includes/settings-page.php:771
+msgid "Headless Browser Detection"
+msgstr ""
+
+#: includes/settings-page.php:777
+msgid "Flag common automation signals (navigator.webdriver, zero-size browser window) picked up by the JS token script."
+msgstr ""
+
+#: includes/settings-page.php:780
+msgid "Lightweight, client-side only, no external calls. Disable this if you use browser-automation tools to test submissions on your own site."
+msgstr ""
+
+#: includes/settings-page.php:788
+msgid "Require Real User Interaction"
+msgstr ""
+
+#: includes/settings-page.php:794
+msgid "Also require at least one real mouse, keyboard, touch, or scroll event before the form is accepted."
+msgstr ""
+
+#: includes/settings-page.php:797
+msgid "Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds."
+msgstr ""
+
+#: includes/settings-page.php:803
+msgid "Statistics"
+msgstr ""
+
+#: includes/settings-page.php:808
+msgid "Track Blocked Submissions"
+msgstr ""
+
+#: includes/settings-page.php:814
+msgid "Keep lightweight counters of blocked submissions, shown below."
+msgstr ""
+
+#: includes/settings-page.php:817
 msgid "Stored as a single, non-autoloaded option. No per-submission logs or personal data are kept."
 msgstr ""
 
-#: includes/settings-page.php:638
+#: includes/settings-page.php:825
+msgid "Show Dashboard Widget"
+msgstr ""
+
+#: includes/settings-page.php:831
+msgid "Show a compact \"Blocked Submissions\" widget on the WordPress Dashboard, visible to users who can manage options."
+msgstr ""
+
+#: includes/settings-page.php:834
+msgid "Off by default. Requires \"Track Blocked Submissions\" above to have data to show."
+msgstr ""
+
+#: includes/settings-page.php:858
 msgid "Blocked Submissions"
 msgstr ""
 
-#: includes/settings-page.php:641
+#: includes/settings-page.php:861
 msgid "Total blocked:"
 msgstr ""
 
 #. translators: %s: human-readable time difference, e.g. "3 hours".
-#: includes/settings-page.php:648
+#: includes/settings-page.php:868
+#, php-format
 msgid "last blocked %s ago"
 msgstr ""
 
-#: includes/settings-page.php:656
+#: includes/settings-page.php:876
 msgid "By channel:"
 msgstr ""
 
-#: includes/settings-page.php:670
+#: includes/settings-page.php:890
 msgid "By reason:"
 msgstr ""
 
-#: includes/settings-page.php:684
+#: includes/settings-page.php:904
+#: includes/stats.php:162
 msgid "No submissions have been blocked yet."
 msgstr ""
 
-#: includes/settings-page.php:690
+#: includes/settings-page.php:910
 msgid "Reset Statistics"
 msgstr ""
 
-#: includes/wp-core-forms.php:65
+#: includes/stats.php:145
+msgid "Init Void Shield – Blocked Submissions"
+msgstr ""
+
+#: includes/stats.php:171
+msgid "blocked in total"
+msgstr ""
+
+#. translators: %s: human-readable time difference, e.g. "3 hours".
+#: includes/stats.php:177
+#, php-format
+msgid "Last blocked %s ago"
+msgstr ""
+
+#: includes/stats.php:187
+msgid "Top channels"
+msgstr ""
+
+#: includes/stats.php:193
+msgid "Top reasons"
+msgstr ""
+
+#: includes/stats.php:198
+msgid "View full statistics & settings"
+msgstr ""
+
+#: includes/wp-core-forms.php:122
 msgid "Invalid login attempt."
 msgstr ""
 
-#: includes/wp-core-forms.php:112
-msgid "Registration could not be completed. Please try again."
-msgstr ""
-
-#: includes/wp-core-forms.php:167
+#: includes/wp-core-forms.php:262
+#: includes/wp-core-forms.php:333
 msgid "Your request could not be processed. Please try again."
 msgstr ""
 
-#: init-void-shield.php:52
+#: init-void-shield.php:55
 msgid "Settings"
 msgstr ""

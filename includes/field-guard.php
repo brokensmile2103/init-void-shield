@@ -123,7 +123,29 @@ function init_plugin_suite_void_shield_get_hidden_style() {
 }
 
 // ------------------------------------------------------------------
-// 4. Render
+// 4. Time token signing
+// ------------------------------------------------------------------
+
+/**
+ * Compute the signed hash for a time token, bound to both the submit time
+ * AND the guard context.
+ *
+ * Binding the hash to the context prevents a token captured from one form
+ * (e.g. a public comment form) from being replayed against a different,
+ * more sensitive context (e.g. the login guard) that happens to be
+ * rendered on the same site. Without this, the hash was only a function of
+ * the timestamp, so any valid (time, hash) pair worked for every context.
+ *
+ * @param int    $submit_time Unix timestamp the token was issued at.
+ * @param string $context     Guard context the token was issued for.
+ * @return string
+ */
+function init_plugin_suite_void_shield_get_time_hash( $submit_time, $context ) {
+	return wp_hash( $submit_time . '|' . (string) $context . '|init_plugin_suite_void_shield_secret' );
+}
+
+// ------------------------------------------------------------------
+// 5. Render
 // ------------------------------------------------------------------
 
 /**
@@ -143,9 +165,10 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	$js_name   = init_plugin_suite_void_shield_get_field_name( $context, 'js_token' );
 
 	$current_time = time();
-	$time_hash    = wp_hash( $current_time . 'init_plugin_suite_void_shield_secret' );
+	$time_hash    = init_plugin_suite_void_shield_get_time_hash( $current_time, $context );
 
-	$js_delay = absint( apply_filters( 'init_plugin_suite_void_shield_js_delay', 1000 ) );
+	// Read the saved setting first; the filter still allows a per-request developer override on top of it.
+	$js_delay = absint( apply_filters( 'init_plugin_suite_void_shield_js_delay', absint( get_option( 'init_plugin_suite_void_shield_js_delay', 1000 ) ) ) );
 
 	// Trap 1: text field.
 	$text_trap  = '<label for="' . esc_attr( $hp_text ) . '">' . esc_html__( 'If you are human, please leave this field blank.', 'init-void-shield' ) . '</label>';
@@ -173,18 +196,32 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	// Allow themes/plugins to modify the honeypot HTML block.
 	$html = apply_filters( 'init_plugin_suite_void_shield_honeypot_html', $html, $context );
 
-	$headless_enabled = ( '1' === get_option( 'init_plugin_suite_void_shield_headless_detection', '1' ) ) ? 'true' : 'false';
+	$headless_enabled     = ( '1' === get_option( 'init_plugin_suite_void_shield_headless_detection', '1' ) ) ? 'true' : 'false';
+	$interaction_required = ( '1' === get_option( 'init_plugin_suite_void_shield_require_interaction', '0' ) ) ? 'true' : 'false';
 
-	// Layer: JavaScript + lightweight headless-browser detection.
-	// `navigator.webdriver` is set to true by Selenium/Puppeteer/Playwright
-	// unless deliberately masked, and a real browser window never reports
-	// 0x0 outer dimensions, so both are cheap, low-false-positive signals.
+	// Layer: JavaScript + lightweight headless-browser detection, plus an
+	// optional real-interaction check. `navigator.webdriver` is set to true
+	// by Selenium/Puppeteer/Playwright unless deliberately masked, and a
+	// real browser window never reports 0x0 outer dimensions, so both are
+	// cheap, low-false-positive signals. The interaction check catches
+	// bots that simply sleep() past the delay: it listens for one genuine
+	// mouse, keyboard, touch, or scroll event (any of which a real visitor
+	// naturally triggers while reading/filling the page) before the timer
+	// fires, without recording anything about that event.
 	$js = "document.addEventListener('DOMContentLoaded', function() {
 		var jsInput = document.getElementById('" . esc_js( $js_name ) . "');
 		if (!jsInput) {
 			return;
 		}
-		var headlessCheckEnabled = " . $headless_enabled . ";
+		var headlessCheckEnabled = " . $headless_enabled . ';
+		var interactionRequired = ' . $interaction_required . ";
+		var interacted = false;
+		if (interactionRequired) {
+			var markInteracted = function() { interacted = true; };
+			['mousemove', 'keydown', 'pointerdown', 'touchstart', 'scroll'].forEach(function(evt) {
+				document.addEventListener(evt, markInteracted, { passive: true, once: true });
+			});
+		}
 		setTimeout(function() {
 			var isBot = false;
 			if (headlessCheckEnabled) {
@@ -195,7 +232,13 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 					isBot = true;
 				}
 			}
-			jsInput.value = isBot ? 'bot_detected' : 'human_verified';
+			if (isBot) {
+				jsInput.value = 'bot_detected';
+			} else if (interactionRequired && !interacted) {
+				jsInput.value = 'no_interaction';
+			} else {
+				jsInput.value = 'human_verified';
+			}
 		}, " . absint( $js_delay ) . ');
 	});';
 
@@ -212,7 +255,7 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 }
 
 // ------------------------------------------------------------------
-// 5. Verify
+// 6. Verify
 // ------------------------------------------------------------------
 
 /**
@@ -243,7 +286,7 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 		return false;
 	}
 
-	// Gate 2: JS / headless-detection token.
+	// Gate 2: JS / headless-detection / interaction token.
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 	$js_value = isset( $_POST[ $js_name ] ) ? sanitize_text_field( wp_unslash( $_POST[ $js_name ] ) ) : '';
 
@@ -252,12 +295,17 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 		return false;
 	}
 
+	if ( 'no_interaction' === $js_value ) {
+		init_plugin_suite_void_shield_record_block( $context, 'no_interaction' );
+		return false;
+	}
+
 	if ( 'human_verified' !== $js_value ) {
 		init_plugin_suite_void_shield_record_block( $context, 'js_token' );
 		return false;
 	}
 
-	// Gate 3: signed time token must exist and be valid.
+	// Gate 3: signed time token must exist and be valid for THIS context.
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing
 	if ( empty( $_POST[ $time_name ] ) || empty( $_POST[ $hash_name ] ) ) {
 		init_plugin_suite_void_shield_record_block( $context, 'time_token_missing' );
@@ -268,19 +316,31 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 	$submit_time = intval( $_POST[ $time_name ] );
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 	$provided_hash = sanitize_text_field( wp_unslash( $_POST[ $hash_name ] ) );
-	$expected_hash = wp_hash( $submit_time . 'init_plugin_suite_void_shield_secret' );
+	$expected_hash = init_plugin_suite_void_shield_get_time_hash( $submit_time, $context );
 
 	if ( ! hash_equals( $expected_hash, $provided_hash ) ) {
 		init_plugin_suite_void_shield_record_block( $context, 'time_token_invalid' );
 		return false;
 	}
 
-	// Gate 4: speed limit (human-friendly threshold).
-	$min_time  = absint( apply_filters( 'init_plugin_suite_void_shield_min_time', 3 ) );
+	// Gate 4: speed limit (human-friendly minimum) and freshness ceiling
+	// (rejects a token that is older than the configured maximum age). The
+	// ceiling exists so a token scraped once cannot be cached and replayed
+	// indefinitely; it only has to be generous enough that a real visitor
+	// who takes a while to read the page and fill the form is never caught
+	// by it.
+	$min_time = absint( apply_filters( 'init_plugin_suite_void_shield_min_time', absint( get_option( 'init_plugin_suite_void_shield_min_time', 3 ) ) ) );
+	$max_time = absint( apply_filters( 'init_plugin_suite_void_shield_max_time', absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) ) ) );
+
 	$time_diff = time() - $submit_time;
 
 	if ( $time_diff < $min_time ) {
 		init_plugin_suite_void_shield_record_block( $context, 'too_fast' );
+		return false;
+	}
+
+	if ( $max_time > 0 && $time_diff > $max_time ) {
+		init_plugin_suite_void_shield_record_block( $context, 'token_expired' );
 		return false;
 	}
 

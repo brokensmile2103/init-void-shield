@@ -3,10 +3,10 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Void Shield 1.2\n"
+"Project-Id-Version: Init Void Shield 1.4\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-void-shield\n"
-"POT-Creation-Date: 2026-08-23 12:00:00+07:00\n"
-"PO-Revision-Date: 2026-08-23 12:00+07:00\n"
+"POT-Creation-Date: 2026-08-29T18:33:50+00:00\n"
+"PO-Revision-Date: 2026-08-30 12:00+07:00\n"
 "Last-Translator: Init HTML <hi@inithtml.com>\n"
 "Language-Team: Vietnamese\n"
 "Language: vi\n"
@@ -14,16 +14,43 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+"X-Domain: init-void-shield\n"
 
-#. Description
-msgid "Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments, core forms, and popular form plugins. Invisible to humans, a void to bots."
-msgstr "Chống spam bằng honeypot cho form bình luận, các form lõi của WordPress và những plugin form phổ biến — không dùng cơ sở dữ liệu, không JavaScript bên ngoài. Vô hình với người dùng, vô tình với bot."
+#. Plugin Name of the plugin
+#: init-void-shield.php includes/settings-page.php:18
+msgid "Init Void Shield"
+msgstr ""
 
-#: includes/field-guard.php:151
+#. Plugin URI of the plugin
+#: init-void-shield.php
+msgid "https://inithtml.com/plugin/init-void-shield/"
+msgstr ""
+
+#. Description of the plugin
+#: init-void-shield.php
+msgid ""
+"Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments, core "
+"forms, and popular form plugins. Invisible to humans, a void to bots."
+msgstr ""
+"Chống spam bằng honeypot cho form bình luận, các form lõi của WordPress và "
+"những plugin form phổ biến — không dùng cơ sở dữ liệu, không JavaScript bên "
+"ngoài. Vô hình với người dùng, vô tình với bot."
+
+#. Author of the plugin
+#: init-void-shield.php
+msgid "Init HTML"
+msgstr ""
+
+#. Author URI of the plugin
+#: init-void-shield.php
+msgid "https://inithtml.com/"
+msgstr ""
+
+#: includes/field-guard.php:174
 msgid "If you are human, please leave this field blank."
 msgstr "Nếu bạn là người thật, xin vui lòng BỎ TRỐNG ô này."
 
-#: includes/field-guard.php:155
+#: includes/field-guard.php:178
 msgid "Do not check this box."
 msgstr "Đừng check vào ô này."
 
@@ -39,6 +66,18 @@ msgstr "Thành công"
 msgid "Comments submitted via the REST API are not accepted on this site."
 msgstr "Bình luận gửi qua REST API không được chấp nhận trên site này."
 
+#: includes/integration-bbpress.php:77 includes/integration-bbpress.php:119
+msgid ""
+"<strong>Error</strong>: Your submission could not be processed. Please try "
+"again."
+msgstr ""
+"<strong>Lỗi</strong>: Không thể xử lý yêu cầu của bạn. Vui lòng thử lại."
+
+#: includes/integration-buddypress.php:81
+#: includes/integration-woocommerce.php:78 includes/wp-core-forms.php:188
+msgid "Registration could not be completed. Please try again."
+msgstr "Không thể hoàn tất đăng ký. Vui lòng thử lại."
+
 #: includes/integration-gravityforms.php:72
 msgid "Blocked by honeypot guard."
 msgstr "Bị chặn bởi honeypot guard."
@@ -51,299 +90,523 @@ msgstr "Đã có lỗi xảy ra. Vui lòng thử lại."
 msgid "Init Void Shield Settings"
 msgstr "Cài đặt Init Void Shield"
 
-#: includes/settings-page.php:227
+#: includes/settings-page.php:301
 msgid "You do not have permission to do this."
 msgstr "Bạn không có quyền thực hiện thao tác này."
 
-#: includes/settings-page.php:257 includes/settings-page.php:354
+#: includes/settings-page.php:331 includes/settings-page.php:447
 msgid "Comments"
 msgstr "Bình luận"
 
-#: includes/settings-page.php:258
+#: includes/settings-page.php:332
 msgid "REST API"
 msgstr "REST API"
 
-#: includes/settings-page.php:259
+#: includes/settings-page.php:333
 msgid "Login form"
 msgstr "Form đăng nhập"
 
-#: includes/settings-page.php:260
+#: includes/settings-page.php:334
 msgid "Registration form"
 msgstr "Form đăng ký"
 
-#: includes/settings-page.php:261
+#: includes/settings-page.php:335
 msgid "Lost password form"
 msgstr "Form quên mật khẩu"
 
-#: includes/settings-page.php:262 includes/settings-page.php:502
+#: includes/settings-page.php:336
+msgid "Multisite signup form"
+msgstr "Form đăng ký Multisite"
+
+#: includes/settings-page.php:337 includes/settings-page.php:637
 msgid "Contact Form 7"
 msgstr "Contact Form 7"
 
-#: includes/settings-page.php:263 includes/settings-page.php:517
+#: includes/settings-page.php:338 includes/settings-page.php:652
 msgid "WPForms"
 msgstr "WPForms"
 
-#: includes/settings-page.php:264 includes/settings-page.php:532
+#: includes/settings-page.php:339 includes/settings-page.php:667
 msgid "Gravity Forms"
 msgstr "Gravity Forms"
 
-#: includes/settings-page.php:265
+#: includes/settings-page.php:340
+msgid "WooCommerce registration"
+msgstr "Đăng ký WooCommerce"
+
+#: includes/settings-page.php:341
+msgid "bbPress topic/reply"
+msgstr "Chủ đề/Trả lời bbPress"
+
+#: includes/settings-page.php:342
+msgid "BuddyPress registration"
+msgstr "Đăng ký BuddyPress"
+
+#: includes/settings-page.php:343
 msgid "Other"
 msgstr "Khác"
 
-#: includes/settings-page.php:276
+#: includes/settings-page.php:354
 msgid "Filled a hidden trap field"
 msgstr "Điền vào ô bẫy ẩn"
 
-#: includes/settings-page.php:277
+#: includes/settings-page.php:355
 msgid "Missing or invalid JS token"
 msgstr "Thiếu hoặc sai token JS"
 
-#: includes/settings-page.php:278
+#: includes/settings-page.php:356
 msgid "Headless browser detected"
 msgstr "Phát hiện trình duyệt headless"
 
-#: includes/settings-page.php:279
+#: includes/settings-page.php:357
+msgid "No real interaction detected"
+msgstr "Không phát hiện tương tác thật"
+
+#: includes/settings-page.php:358
 msgid "Missing time token"
 msgstr "Thiếu token thời gian"
 
-#: includes/settings-page.php:280
+#: includes/settings-page.php:359
 msgid "Invalid time token"
 msgstr "Token thời gian không hợp lệ"
 
-#: includes/settings-page.php:281
+#: includes/settings-page.php:360
+msgid "Time token expired"
+msgstr "Token thời gian đã hết hạn"
+
+#: includes/settings-page.php:361
 msgid "Submitted too fast"
 msgstr "Gửi quá nhanh"
 
-#: includes/settings-page.php:282
+#: includes/settings-page.php:362
 msgid "No user agent header"
 msgstr "Không có header User-Agent"
 
-#: includes/settings-page.php:283
+#: includes/settings-page.php:363
 msgid "Invalid post ID"
 msgstr "ID bài viết không hợp lệ"
 
-#: includes/settings-page.php:284
+#: includes/settings-page.php:364
 msgid "REST API endpoint blocked"
 msgstr "Endpoint REST API bị chặn"
 
-#: includes/settings-page.php:296
+#: includes/settings-page.php:376
 msgid "Detected on this site."
 msgstr "Đã phát hiện trên site này."
 
-#: includes/settings-page.php:300
+#: includes/settings-page.php:380
 msgid "Not detected on this site. Install and activate it first."
-msgstr "Không phát hiện trên site này. Hãy cài đặt và kích hoạt plugin đó trước."
+msgstr ""
+"Không phát hiện trên site này. Hãy cài đặt và kích hoạt plugin đó trước."
 
-#: includes/settings-page.php:339
+#: includes/settings-page.php:432
 msgid "Statistics have been reset."
 msgstr "Đã đặt lại thống kê."
 
-#: includes/settings-page.php:359
+#: includes/settings-page.php:452
 msgid "Enable Init Void Shield"
 msgstr "Bật Init Void Shield"
 
-#: includes/settings-page.php:365
+#: includes/settings-page.php:458
 msgid "Activate the honeypot defense on comment forms."
 msgstr "Kích hoạt hệ thống phòng thủ honeypot trên form bình luận."
 
-#: includes/settings-page.php:373
+#: includes/settings-page.php:466
 msgid "Apply to Logged-in Users"
 msgstr "Áp dụng cho người dùng đã đăng nhập"
 
-#: includes/settings-page.php:379
+#: includes/settings-page.php:472
 msgid "Also verify comments from logged-in users."
 msgstr "Cũng xác minh bình luận từ người dùng đã đăng nhập."
 
-#: includes/settings-page.php:382
-msgid "By default, logged-in users are trusted and bypass all checks. Enable this if your site has open registration or untrusted members."
-msgstr "Mặc định, người dùng đã đăng nhập được tin tưởng và bỏ qua mọi kiểm tra. Bật tùy chọn này nếu site của bạn cho đăng ký công khai hoặc có thành viên không đáng tin."
+#: includes/settings-page.php:475
+msgid ""
+"By default, logged-in users are trusted and bypass all checks. Enable this "
+"if your site has open registration or untrusted members."
+msgstr ""
+"Mặc định, người dùng đã đăng nhập được tin tưởng và bỏ qua mọi kiểm tra. Bật"
+" tùy chọn này nếu site của bạn cho đăng ký công khai hoặc có thành viên "
+"không đáng tin."
 
-#: includes/settings-page.php:390
+#: includes/settings-page.php:483
 msgid "Minimum Submit Time"
 msgstr "Thời gian gửi tối thiểu"
 
-#: includes/settings-page.php:399
+#: includes/settings-page.php:492 includes/settings-page.php:530
 msgid "seconds"
 msgstr "giây"
 
-#: includes/settings-page.php:401
-msgid "Comments submitted faster than this will be rejected. Humans need time to read and type."
-msgstr "Bình luận gửi nhanh hơn ngưỡng này sẽ bị từ chối. Con người cần thời gian để đọc và gõ."
+#: includes/settings-page.php:494
+msgid ""
+"Comments submitted faster than this will be rejected. Humans need time to "
+"read and type."
+msgstr ""
+"Bình luận gửi nhanh hơn ngưỡng này sẽ bị từ chối. Con người cần thời gian để"
+" đọc và gõ."
 
-#: includes/settings-page.php:409
+#: includes/settings-page.php:502
 msgid "JavaScript Token Delay"
 msgstr "Độ trễ Token JavaScript"
 
-#: includes/settings-page.php:418
+#: includes/settings-page.php:511
 msgid "milliseconds"
 msgstr "mili giây"
 
-#: includes/settings-page.php:420
-msgid "Delay before the hidden JS token is injected. Catches headless browsers that submit instantly."
-msgstr "Độ trễ trước khi token JS ẩn được bơm vào. Bắt các trình duyệt headless gửi ngay lập tức."
+#: includes/settings-page.php:513
+msgid ""
+"Delay before the hidden JS token is injected. Catches headless browsers that"
+" submit instantly."
+msgstr ""
+"Độ trễ trước khi token JS ẩn được bơm vào. Bắt các trình duyệt headless gửi "
+"ngay lập tức."
 
-#: includes/settings-page.php:428
+#: includes/settings-page.php:521
+msgid "Maximum Token Age"
+msgstr "Thời hạn tối đa của Token"
+
+#: includes/settings-page.php:532
+msgid ""
+"A submission carrying a token older than this is rejected, so a token cannot"
+" be captured once and replayed indefinitely. Increase this if visitors on "
+"your site often take a long time before submitting."
+msgstr ""
+"Lượt gửi mang theo token cũ hơn ngưỡng này sẽ bị từ chối, nhờ đó một token "
+"không thể bị lấy trộm rồi dùng lại mãi mãi. Hãy tăng giá trị này nếu người "
+"dùng trên site của bạn thường mất nhiều thời gian trước khi gửi form."
+
+#: includes/settings-page.php:540
 msgid "Block REST API Comments"
 msgstr "Chặn bình luận qua REST API"
 
-#: includes/settings-page.php:434
-msgid "Reject comments submitted directly through the REST API (wp/v2/comments)."
+#: includes/settings-page.php:546
+msgid ""
+"Reject comments submitted directly through the REST API (wp/v2/comments)."
 msgstr "Từ chối bình luận gửi trực tiếp qua REST API (wp/v2/comments)."
 
-#: includes/settings-page.php:437
-msgid "The honeypot and JS token checks above only cover the classic comment form; REST API submissions bypass them entirely. Enable this only if your site does not rely on a headless app or other legitimate client that posts comments via the REST API."
-msgstr "Các kiểm tra honeypot và token JS ở trên chỉ áp dụng cho form bình luận cổ điển; bình luận gửi qua REST API sẽ né hoàn toàn các kiểm tra đó. Chỉ bật tùy chọn này nếu site của bạn không có app headless hay client hợp lệ nào khác gửi bình luận qua REST API."
+#: includes/settings-page.php:549
+msgid ""
+"The honeypot and JS token checks above only cover the classic comment form; "
+"REST API submissions bypass them entirely. Enable this only if your site "
+"does not rely on a headless app or other legitimate client that posts "
+"comments via the REST API."
+msgstr ""
+"Các kiểm tra honeypot và token JS ở trên chỉ áp dụng cho form bình luận cổ "
+"điển; bình luận gửi qua REST API sẽ né hoàn toàn các kiểm tra đó. Chỉ bật "
+"tùy chọn này nếu site của bạn không có app headless hay client hợp lệ nào "
+"khác gửi bình luận qua REST API."
 
-#: includes/settings-page.php:443
+#: includes/settings-page.php:555
 msgid "WordPress Core Forms"
 msgstr "Các form lõi WordPress"
 
-#: includes/settings-page.php:445
-msgid "Optional honeypot protection for the default WordPress login, registration, and lost-password forms at wp-login.php. Disabled by default, since these guard authentication itself — review your setup after enabling."
-msgstr "Bảo vệ honeypot tùy chọn cho form đăng nhập, đăng ký và quên mật khẩu mặc định của WordPress tại wp-login.php. Mặc định tắt vì đây là các form liên quan trực tiếp đến xác thực — hãy kiểm tra lại cấu hình sau khi bật."
+#: includes/settings-page.php:557
+msgid ""
+"Optional honeypot protection for the default WordPress login, registration, "
+"and lost-password forms at wp-login.php. Disabled by default, since these "
+"guard authentication itself — review your setup after enabling."
+msgstr ""
+"Bảo vệ honeypot tùy chọn cho form đăng nhập, đăng ký và quên mật khẩu mặc "
+"định của WordPress tại wp-login.php. Mặc định tắt vì đây là các form liên "
+"quan trực tiếp đến xác thực — hãy kiểm tra lại cấu hình sau khi bật."
 
-#: includes/settings-page.php:451
+#: includes/settings-page.php:563
 msgid "Guard Login Form"
 msgstr "Bảo vệ form Đăng nhập"
 
-#: includes/settings-page.php:457
+#: includes/settings-page.php:569
 msgid "Protect the default WP login form against automated login attempts."
 msgstr "Bảo vệ form đăng nhập mặc định của WP khỏi các lần đăng nhập tự động."
 
-#: includes/settings-page.php:465
+#: includes/settings-page.php:577
 msgid "Guard Registration Form"
 msgstr "Bảo vệ form Đăng ký"
 
-#: includes/settings-page.php:471
-msgid "Protect the default WP registration form (wp-login.php?action=register)."
+#: includes/settings-page.php:583
+msgid ""
+"Protect the default WP registration form (wp-login.php?action=register)."
 msgstr "Bảo vệ form đăng ký mặc định của WP (wp-login.php?action=register)."
 
-#: includes/settings-page.php:474
-msgid "Only applies if user registration is open. Multisite signup (wp-signup.php) uses a different form and is not covered."
-msgstr "Chỉ áp dụng khi cho phép đăng ký thành viên. Form đăng ký Multisite (wp-signup.php) dùng giao diện khác và không được hỗ trợ."
+#: includes/settings-page.php:586
+msgid ""
+"Only applies if user registration is open. Multisite signup (wp-signup.php) "
+"uses a different form and is not covered."
+msgstr ""
+"Chỉ áp dụng khi cho phép đăng ký thành viên. Form đăng ký Multisite (wp-"
+"signup.php) dùng giao diện khác và không được hỗ trợ."
 
-#: includes/settings-page.php:482
+#: includes/settings-page.php:594
 msgid "Guard Lost Password Form"
 msgstr "Bảo vệ form Quên mật khẩu"
 
-#: includes/settings-page.php:488
+#: includes/settings-page.php:600
 msgid "Protect the default WP lost-password form."
 msgstr "Bảo vệ form quên mật khẩu mặc định của WP."
 
-#: includes/settings-page.php:494
+#: includes/settings-page.php:608
+msgid "Guard Multisite Signup Form"
+msgstr "Bảo vệ Form đăng ký Multisite"
+
+#: includes/settings-page.php:614
+msgid "Protect the site/user signup form at wp-signup.php."
+msgstr "Bảo vệ form đăng ký site/thành viên tại wp-signup.php."
+
+#: includes/settings-page.php:619
+msgid "Multisite detected."
+msgstr "Đã phát hiện Multisite."
+
+#: includes/settings-page.php:621
+msgid "This site is not a Multisite network; this guard has no effect here."
+msgstr ""
+"Site này không phải mạng Multisite; tùy chọn bảo vệ này không có tác dụng ở "
+"đây."
+
+#: includes/settings-page.php:629
 msgid "Form Plugin Integrations"
 msgstr "Tích hợp Plugin Form"
 
-#: includes/settings-page.php:496
-msgid "Optional honeypot protection for popular third-party form plugins. Each toggle only takes effect if the corresponding plugin is active."
-msgstr "Bảo vệ honeypot tùy chọn cho các plugin form phổ biến của bên thứ ba. Mỗi công tắc chỉ có tác dụng nếu plugin tương ứng đang được kích hoạt."
+#: includes/settings-page.php:631
+msgid ""
+"Optional honeypot protection for popular third-party form plugins. Each "
+"toggle only takes effect if the corresponding plugin is active."
+msgstr ""
+"Bảo vệ honeypot tùy chọn cho các plugin form phổ biến của bên thứ ba. Mỗi "
+"công tắc chỉ có tác dụng nếu plugin tương ứng đang được kích hoạt."
 
-#: includes/settings-page.php:508
+#: includes/settings-page.php:643
 msgid "Add the honeypot guard to all Contact Form 7 forms."
 msgstr "Thêm honeypot guard vào tất cả form Contact Form 7."
 
-#: includes/settings-page.php:523
+#: includes/settings-page.php:658
 msgid "Add the honeypot guard to all WPForms forms."
 msgstr "Thêm honeypot guard vào tất cả form WPForms."
 
-#: includes/settings-page.php:538
+#: includes/settings-page.php:673
 msgid "Add the honeypot guard to all Gravity Forms forms."
 msgstr "Thêm honeypot guard vào tất cả form Gravity Forms."
 
-#: includes/settings-page.php:545
+#: includes/settings-page.php:680
+msgid "Community & E-commerce Integrations"
+msgstr "Tích hợp Cộng đồng & Thương mại điện tử"
+
+#: includes/settings-page.php:682
+msgid ""
+"Optional honeypot protection for WooCommerce, bbPress, and BuddyPress. Each "
+"toggle only takes effect if the corresponding plugin is active."
+msgstr ""
+"Bảo vệ honeypot tùy chọn cho WooCommerce, bbPress và BuddyPress. Mỗi công "
+"tắc chỉ có tác dụng nếu plugin tương ứng đang được kích hoạt."
+
+#: includes/settings-page.php:688
+msgid "WooCommerce Registration"
+msgstr "Đăng ký WooCommerce"
+
+#: includes/settings-page.php:694
+msgid ""
+"Add the honeypot guard to the WooCommerce \"My Account\" registration form."
+msgstr ""
+"Thêm bảo vệ honeypot vào form đăng ký \"Tài khoản của tôi\" của WooCommerce."
+
+#: includes/settings-page.php:703
+msgid "bbPress Topics & Replies"
+msgstr "Chủ đề & Trả lời bbPress"
+
+#: includes/settings-page.php:709
+msgid "Add the honeypot guard to the New Topic and Reply forms."
+msgstr "Thêm bảo vệ honeypot vào form Tạo chủ đề mới và Trả lời."
+
+#: includes/settings-page.php:718
+msgid "BuddyPress Registration"
+msgstr "Đăng ký BuddyPress"
+
+#: includes/settings-page.php:724
+msgid "Add the honeypot guard to the BuddyPress signup form."
+msgstr "Thêm bảo vệ honeypot vào form đăng ký của BuddyPress."
+
+#: includes/settings-page.php:731
 msgid "Advanced Protection"
 msgstr "Bảo vệ nâng cao"
 
-#: includes/settings-page.php:550
+#: includes/settings-page.php:736
 msgid "Custom Field Prefix"
 msgstr "Tiền tố Field tùy chỉnh"
 
-#: includes/settings-page.php:560
-msgid "Prefix used to build the hidden honeypot field names (lowercase letters, numbers, underscore only). Change this if you suspect a spammer has targeted your site specifically."
-msgstr "Tiền tố dùng để tạo tên các field honeypot ẩn (chỉ gồm chữ thường, số, dấu gạch dưới). Đổi giá trị này nếu bạn nghi ngờ có kẻ spam nhắm riêng vào site của bạn."
+#: includes/settings-page.php:746
+msgid ""
+"Prefix used to build the hidden honeypot field names (lowercase letters, "
+"numbers, underscore only). Change this if you suspect a spammer has targeted"
+" your site specifically."
+msgstr ""
+"Tiền tố dùng để tạo tên các field honeypot ẩn (chỉ gồm chữ thường, số, dấu "
+"gạch dưới). Đổi giá trị này nếu bạn nghi ngờ có kẻ spam nhắm riêng vào site "
+"của bạn."
 
-#: includes/settings-page.php:568
+#: includes/settings-page.php:754
 msgid "CSS Trap Rotation"
 msgstr "Xoay vòng CSS Bẫy"
 
-#: includes/settings-page.php:574
-msgid "Randomize the CSS technique and field order used to hide honeypot traps on every render."
-msgstr "Ngẫu nhiên hóa kỹ thuật CSS và thứ tự field dùng để ẩn bẫy honeypot mỗi lần hiển thị."
+#: includes/settings-page.php:760
+msgid ""
+"Randomize the CSS technique and field order used to hide honeypot traps on "
+"every render."
+msgstr ""
+"Ngẫu nhiên hóa kỹ thuật CSS và thứ tự field dùng để ẩn bẫy honeypot mỗi lần "
+"hiển thị."
 
-#: includes/settings-page.php:577
-msgid "Makes it harder for CSS-aware bots to learn a single fixed pattern. Traps remain invisible to humans either way."
-msgstr "Khiến các bot biết đọc CSS khó học được một khuôn mẫu cố định hơn. Dù bật hay tắt, bẫy vẫn luôn vô hình với người dùng."
+#: includes/settings-page.php:763
+msgid ""
+"Makes it harder for CSS-aware bots to learn a single fixed pattern. Traps "
+"remain invisible to humans either way."
+msgstr ""
+"Khiến các bot biết đọc CSS khó học được một khuôn mẫu cố định hơn. Dù bật "
+"hay tắt, bẫy vẫn luôn vô hình với người dùng."
 
-#: includes/settings-page.php:585
+#: includes/settings-page.php:771
 msgid "Headless Browser Detection"
 msgstr "Phát hiện Trình duyệt Headless"
 
-#: includes/settings-page.php:591
-msgid "Flag common automation signals (navigator.webdriver, zero-size browser window) picked up by the JS token script."
-msgstr "Đánh dấu các dấu hiệu tự động hóa phổ biến (navigator.webdriver, cửa sổ trình duyệt kích thước 0) mà script token JS phát hiện được."
+#: includes/settings-page.php:777
+msgid ""
+"Flag common automation signals (navigator.webdriver, zero-size browser "
+"window) picked up by the JS token script."
+msgstr ""
+"Đánh dấu các dấu hiệu tự động hóa phổ biến (navigator.webdriver, cửa sổ "
+"trình duyệt kích thước 0) mà script token JS phát hiện được."
 
-#: includes/settings-page.php:594
-msgid "Lightweight, client-side only, no external calls. Disable this if you use browser-automation tools to test submissions on your own site."
-msgstr "Nhẹ, chỉ chạy phía client, không gọi ra bên ngoài. Tắt tùy chọn này nếu bạn dùng công cụ tự động hóa trình duyệt để test gửi form trên chính site của mình."
+#: includes/settings-page.php:780
+msgid ""
+"Lightweight, client-side only, no external calls. Disable this if you use "
+"browser-automation tools to test submissions on your own site."
+msgstr ""
+"Nhẹ, chỉ chạy phía client, không gọi ra bên ngoài. Tắt tùy chọn này nếu bạn "
+"dùng công cụ tự động hóa trình duyệt để test gửi form trên chính site của "
+"mình."
 
-#: includes/settings-page.php:600
+#: includes/settings-page.php:788
+msgid "Require Real User Interaction"
+msgstr "Yêu cầu tương tác thật từ người dùng"
+
+#: includes/settings-page.php:794
+msgid ""
+"Also require at least one real mouse, keyboard, touch, or scroll event "
+"before the form is accepted."
+msgstr ""
+"Yêu cầu thêm ít nhất một thao tác thật (chuột, bàn phím, chạm hoặc cuộn "
+"trang) trước khi form được chấp nhận."
+
+#: includes/settings-page.php:797
+msgid ""
+"Catches bots that simply wait out the JavaScript Token Delay instead of "
+"interacting with the page. Off by default; works best with a JavaScript "
+"Token Delay of at least 1-2 seconds."
+msgstr ""
+"Bắt các bot chỉ đơn giản chờ hết thời gian trễ của Token JS thay vì thật sự "
+"tương tác với trang. Mặc định tắt; hoạt động tốt nhất khi Độ trễ Token "
+"JavaScript từ 1-2 giây trở lên."
+
+#: includes/settings-page.php:803
 msgid "Statistics"
 msgstr "Thống kê"
 
-#: includes/settings-page.php:605
+#: includes/settings-page.php:808
 msgid "Track Blocked Submissions"
 msgstr "Theo dõi lượt gửi bị chặn"
 
-#: includes/settings-page.php:611
+#: includes/settings-page.php:814
 msgid "Keep lightweight counters of blocked submissions, shown below."
 msgstr "Giữ bộ đếm nhẹ các lượt gửi bị chặn, hiển thị bên dưới."
 
-#: includes/settings-page.php:614
-msgid "Stored as a single, non-autoloaded option. No per-submission logs or personal data are kept."
-msgstr "Lưu dưới dạng một option duy nhất, không autoload. Không lưu log chi tiết từng lượt gửi hay dữ liệu cá nhân nào."
+#: includes/settings-page.php:817
+msgid ""
+"Stored as a single, non-autoloaded option. No per-submission logs or "
+"personal data are kept."
+msgstr ""
+"Lưu dưới dạng một option duy nhất, không autoload. Không lưu log chi tiết "
+"từng lượt gửi hay dữ liệu cá nhân nào."
 
-#: includes/settings-page.php:638
+#: includes/settings-page.php:825
+msgid "Show Dashboard Widget"
+msgstr "Hiển thị Widget trên Bảng tin"
+
+#: includes/settings-page.php:831
+msgid ""
+"Show a compact \"Blocked Submissions\" widget on the WordPress Dashboard, "
+"visible to users who can manage options."
+msgstr ""
+"Hiển thị một widget gọn \"Lượt gửi đã chặn\" trên Bảng tin (Dashboard) của "
+"WordPress, chỉ hiển thị với người dùng có quyền quản lý cài đặt."
+
+#: includes/settings-page.php:834
+msgid ""
+"Off by default. Requires \"Track Blocked Submissions\" above to have data to"
+" show."
+msgstr ""
+"Mặc định tắt. Cần bật \"Theo dõi lượt gửi bị chặn\" ở trên thì mới có dữ "
+"liệu để hiển thị."
+
+#: includes/settings-page.php:858
 msgid "Blocked Submissions"
 msgstr "Lượt gửi bị chặn"
 
-#: includes/settings-page.php:641
+#: includes/settings-page.php:861
 msgid "Total blocked:"
 msgstr "Tổng số bị chặn:"
 
 #. translators: %s: human-readable time difference, e.g. "3 hours".
-#: includes/settings-page.php:648
+#: includes/settings-page.php:868
+#, php-format
 msgid "last blocked %s ago"
 msgstr "lần chặn gần nhất cách đây %s"
 
-#: includes/settings-page.php:656
+#: includes/settings-page.php:876
 msgid "By channel:"
 msgstr "Theo kênh:"
 
-#: includes/settings-page.php:670
+#: includes/settings-page.php:890
 msgid "By reason:"
 msgstr "Theo lý do:"
 
-#: includes/settings-page.php:684
+#: includes/settings-page.php:904 includes/stats.php:162
 msgid "No submissions have been blocked yet."
 msgstr "Chưa có lượt gửi nào bị chặn."
 
-#: includes/settings-page.php:690
+#: includes/settings-page.php:910
 msgid "Reset Statistics"
 msgstr "Đặt lại thống kê"
 
-#: includes/wp-core-forms.php:65
+#: includes/stats.php:145
+msgid "Init Void Shield – Blocked Submissions"
+msgstr "Init Void Shield – Lượt gửi đã chặn"
+
+#: includes/stats.php:171
+msgid "blocked in total"
+msgstr "tổng số lượt đã chặn"
+
+#. translators: %s: human-readable time difference, e.g. "3 hours".
+#: includes/stats.php:177
+#, php-format
+msgid "Last blocked %s ago"
+msgstr "Lần chặn gần nhất cách đây %s"
+
+#: includes/stats.php:187
+msgid "Top channels"
+msgstr "Kênh bị chặn nhiều nhất"
+
+#: includes/stats.php:193
+msgid "Top reasons"
+msgstr "Lý do bị chặn nhiều nhất"
+
+#: includes/stats.php:198
+msgid "View full statistics & settings"
+msgstr "Xem đầy đủ thống kê & cài đặt"
+
+#: includes/wp-core-forms.php:122
 msgid "Invalid login attempt."
 msgstr "Lần đăng nhập không hợp lệ."
 
-#: includes/wp-core-forms.php:112
-msgid "Registration could not be completed. Please try again."
-msgstr "Không thể hoàn tất đăng ký. Vui lòng thử lại."
-
-#: includes/wp-core-forms.php:167
+#: includes/wp-core-forms.php:262 includes/wp-core-forms.php:333
 msgid "Your request could not be processed. Please try again."
 msgstr "Không thể xử lý yêu cầu của bạn. Vui lòng thử lại."
 
-#: init-void-shield.php:52
+#: init-void-shield.php:55
 msgid "Settings"
 msgstr "Cài đặt"

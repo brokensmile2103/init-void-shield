@@ -101,6 +101,18 @@ add_action(
 			)
 		);
 
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_max_time',
+			array(
+				'type'              => 'integer',
+				'sanitize_callback' => function ( $v ) {
+					return max( 60, min( 86400, absint( $v ) ) );
+				},
+				'default'           => 3600,
+			)
+		);
+
 		// --- WordPress core forms ---------------------------------------.
 
 		register_setting(
@@ -126,6 +138,16 @@ add_action(
 		register_setting(
 			$group,
 			'init_plugin_suite_void_shield_enable_lostpassword_guard',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+				'default'           => '0',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_enable_multisite_signup',
 			array(
 				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
@@ -165,6 +187,38 @@ add_action(
 			)
 		);
 
+		// --- Community & e-commerce integrations --------------------------.
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_enable_woocommerce_register',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+				'default'           => '0',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_enable_bbpress',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+				'default'           => '0',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_enable_buddypress',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+				'default'           => '0',
+			)
+		);
+
 		// --- Advanced protection -----------------------------------------.
 
 		register_setting(
@@ -197,6 +251,16 @@ add_action(
 			)
 		);
 
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_require_interaction',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+				'default'           => '0',
+			)
+		);
+
 		// --- Stats ---------------------------------------------------------.
 
 		register_setting(
@@ -206,6 +270,16 @@ add_action(
 				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 				'default'           => '1',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_enable_dashboard_widget',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+				'default'           => '0',
 			)
 		);
 	}
@@ -259,9 +333,13 @@ function init_plugin_suite_void_shield_get_channel_labels() {
 		'login'        => __( 'Login form', 'init-void-shield' ),
 		'register'     => __( 'Registration form', 'init-void-shield' ),
 		'lostpassword' => __( 'Lost password form', 'init-void-shield' ),
+		'multisite'    => __( 'Multisite signup form', 'init-void-shield' ),
 		'cf7'          => __( 'Contact Form 7', 'init-void-shield' ),
 		'wpforms'      => __( 'WPForms', 'init-void-shield' ),
 		'gravityforms' => __( 'Gravity Forms', 'init-void-shield' ),
+		'woocommerce'  => __( 'WooCommerce registration', 'init-void-shield' ),
+		'bbpress'      => __( 'bbPress topic/reply', 'init-void-shield' ),
+		'buddypress'   => __( 'BuddyPress registration', 'init-void-shield' ),
 		'other'        => __( 'Other', 'init-void-shield' ),
 	);
 }
@@ -276,8 +354,10 @@ function init_plugin_suite_void_shield_get_reason_labels() {
 		'honeypot_field'     => __( 'Filled a hidden trap field', 'init-void-shield' ),
 		'js_token'           => __( 'Missing or invalid JS token', 'init-void-shield' ),
 		'headless_browser'   => __( 'Headless browser detected', 'init-void-shield' ),
+		'no_interaction'     => __( 'No real interaction detected', 'init-void-shield' ),
 		'time_token_missing' => __( 'Missing time token', 'init-void-shield' ),
 		'time_token_invalid' => __( 'Invalid time token', 'init-void-shield' ),
+		'token_expired'      => __( 'Time token expired', 'init-void-shield' ),
 		'too_fast'           => __( 'Submitted too fast', 'init-void-shield' ),
 		'no_user_agent'      => __( 'No user agent header', 'init-void-shield' ),
 		'invalid_post_id'    => __( 'Invalid post ID', 'init-void-shield' ),
@@ -314,25 +394,38 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$apply_logged_in = get_option( 'init_plugin_suite_void_shield_apply_to_logged_in', '0' );
 	$min_time        = absint( get_option( 'init_plugin_suite_void_shield_min_time', 3 ) );
 	$js_delay        = absint( get_option( 'init_plugin_suite_void_shield_js_delay', 1000 ) );
+	$max_time        = absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) );
 	$block_rest      = get_option( 'init_plugin_suite_void_shield_block_rest', '0' );
 
-	$enable_login        = get_option( 'init_plugin_suite_void_shield_enable_login_guard', '0' );
-	$enable_register     = get_option( 'init_plugin_suite_void_shield_enable_register_guard', '0' );
-	$enable_lostpassword = get_option( 'init_plugin_suite_void_shield_enable_lostpassword_guard', '0' );
+	$enable_login            = get_option( 'init_plugin_suite_void_shield_enable_login_guard', '0' );
+	$enable_register         = get_option( 'init_plugin_suite_void_shield_enable_register_guard', '0' );
+	$enable_lostpassword     = get_option( 'init_plugin_suite_void_shield_enable_lostpassword_guard', '0' );
+	$enable_multisite_signup = get_option( 'init_plugin_suite_void_shield_enable_multisite_signup', '0' );
 
 	$enable_cf7          = get_option( 'init_plugin_suite_void_shield_enable_cf7', '0' );
 	$enable_wpforms      = get_option( 'init_plugin_suite_void_shield_enable_wpforms', '0' );
 	$enable_gravityforms = get_option( 'init_plugin_suite_void_shield_enable_gravityforms', '0' );
 
+	$enable_woocommerce = get_option( 'init_plugin_suite_void_shield_enable_woocommerce_register', '0' );
+	$enable_bbpress     = get_option( 'init_plugin_suite_void_shield_enable_bbpress', '0' );
+	$enable_buddypress  = get_option( 'init_plugin_suite_void_shield_enable_buddypress', '0' );
+
 	$field_prefix        = init_plugin_suite_void_shield_get_field_prefix();
 	$enable_css_rotation = get_option( 'init_plugin_suite_void_shield_enable_css_rotation', '1' );
 	$headless_detection  = get_option( 'init_plugin_suite_void_shield_headless_detection', '1' );
+	$require_interaction = get_option( 'init_plugin_suite_void_shield_require_interaction', '0' );
 
-	$enable_stats = get_option( 'init_plugin_suite_void_shield_enable_stats', '1' );
+	$enable_stats            = get_option( 'init_plugin_suite_void_shield_enable_stats', '1' );
+	$enable_dashboard_widget = get_option( 'init_plugin_suite_void_shield_enable_dashboard_widget', '0' );
 
 	$cf7_active          = class_exists( 'WPCF7_ContactForm' );
 	$wpforms_active      = function_exists( 'wpforms' );
 	$gravityforms_active = class_exists( 'GFForms' );
+
+	$woocommerce_active = class_exists( 'WooCommerce' );
+	$bbpress_active     = class_exists( 'bbPress' );
+	$buddypress_active  = function_exists( 'buddypress' );
+	$is_multisite       = is_multisite();
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only flag, no state change is performed here.
 	if ( isset( $_GET['stats-reset'] ) ) {
@@ -424,6 +517,25 @@ function init_plugin_suite_void_shield_render_settings_page() {
 
 				<tr>
 					<th scope="row">
+						<label for="init_plugin_suite_void_shield_max_time">
+							<?php esc_html_e( 'Maximum Token Age', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<input type="number" min="60" max="86400" step="60"
+								name="init_plugin_suite_void_shield_max_time"
+								id="init_plugin_suite_void_shield_max_time"
+								value="<?php echo esc_attr( $max_time ); ?>"
+								class="small-text">
+						<span class="description"><?php esc_html_e( 'seconds', 'init-void-shield' ); ?></span>
+						<p class="description">
+							<?php esc_html_e( 'A submission carrying a token older than this is rejected, so a token cannot be captured once and replayed indefinitely. Increase this if visitors on your site often take a long time before submitting.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
 						<label for="init_plugin_suite_void_shield_block_rest">
 							<?php esc_html_e( 'Block REST API Comments', 'init-void-shield' ); ?>
 						</label>
@@ -489,6 +601,29 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</label>
 					</td>
 				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_enable_multisite_signup">
+							<?php esc_html_e( 'Guard Multisite Signup Form', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_enable_multisite_signup" id="init_plugin_suite_void_shield_enable_multisite_signup" value="1" <?php checked( $enable_multisite_signup, '1' ); ?>>
+							<?php esc_html_e( 'Protect the site/user signup form at wp-signup.php.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php
+							if ( $is_multisite ) {
+								echo '<span style="color:#046a04;">&#10003; ' . esc_html__( 'Multisite detected.', 'init-void-shield' ) . '</span>';
+							} else {
+								echo '<span style="color:#a94442;">&#8212; ' . esc_html__( 'This site is not a Multisite network; this guard has no effect here.', 'init-void-shield' ) . '</span>';
+							}
+							?>
+						</p>
+					</td>
+				</tr>
 			</table>
 
 			<h2><?php esc_html_e( 'Form Plugin Integrations', 'init-void-shield' ); ?></h2>
@@ -538,6 +673,57 @@ function init_plugin_suite_void_shield_render_settings_page() {
 							<?php esc_html_e( 'Add the honeypot guard to all Gravity Forms forms.', 'init-void-shield' ); ?>
 						</label>
 						<p class="description"><?php init_plugin_suite_void_shield_render_detection_badge( $gravityforms_active ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<h2><?php esc_html_e( 'Community & E-commerce Integrations', 'init-void-shield' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'Optional honeypot protection for WooCommerce, bbPress, and BuddyPress. Each toggle only takes effect if the corresponding plugin is active.', 'init-void-shield' ); ?>
+			</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_enable_woocommerce_register">
+							<?php esc_html_e( 'WooCommerce Registration', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_enable_woocommerce_register" id="init_plugin_suite_void_shield_enable_woocommerce_register" value="1" <?php checked( $enable_woocommerce, '1' ); ?>>
+							<?php esc_html_e( 'Add the honeypot guard to the WooCommerce "My Account" registration form.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description"><?php init_plugin_suite_void_shield_render_detection_badge( $woocommerce_active ); ?></p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_enable_bbpress">
+							<?php esc_html_e( 'bbPress Topics & Replies', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_enable_bbpress" id="init_plugin_suite_void_shield_enable_bbpress" value="1" <?php checked( $enable_bbpress, '1' ); ?>>
+							<?php esc_html_e( 'Add the honeypot guard to the New Topic and Reply forms.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description"><?php init_plugin_suite_void_shield_render_detection_badge( $bbpress_active ); ?></p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_enable_buddypress">
+							<?php esc_html_e( 'BuddyPress Registration', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_enable_buddypress" id="init_plugin_suite_void_shield_enable_buddypress" value="1" <?php checked( $enable_buddypress, '1' ); ?>>
+							<?php esc_html_e( 'Add the honeypot guard to the BuddyPress signup form.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description"><?php init_plugin_suite_void_shield_render_detection_badge( $buddypress_active ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -595,6 +781,23 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</p>
 					</td>
 				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_require_interaction">
+							<?php esc_html_e( 'Require Real User Interaction', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_require_interaction" id="init_plugin_suite_void_shield_require_interaction" value="1" <?php checked( $require_interaction, '1' ); ?>>
+							<?php esc_html_e( 'Also require at least one real mouse, keyboard, touch, or scroll event before the form is accepted.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
 			</table>
 
 			<h2><?php esc_html_e( 'Statistics', 'init-void-shield' ); ?></h2>
@@ -612,6 +815,23 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'Stored as a single, non-autoloaded option. No per-submission logs or personal data are kept.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_enable_dashboard_widget">
+							<?php esc_html_e( 'Show Dashboard Widget', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_enable_dashboard_widget" id="init_plugin_suite_void_shield_enable_dashboard_widget" value="1" <?php checked( $enable_dashboard_widget, '1' ); ?>>
+							<?php esc_html_e( 'Show a compact "Blocked Submissions" widget on the WordPress Dashboard, visible to users who can manage options.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Off by default. Requires "Track Blocked Submissions" above to have data to show.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
