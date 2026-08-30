@@ -107,7 +107,7 @@ add_action(
 			array(
 				'type'              => 'integer',
 				'sanitize_callback' => function ( $v ) {
-					return max( 60, min( 86400, absint( $v ) ) );
+					return max( 60, min( 2592000, absint( $v ) ) );
 				},
 				'default'           => 3600,
 			)
@@ -122,6 +122,18 @@ add_action(
 				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 				'default'           => '0',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_login_guard_scope',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => function ( $v ) {
+					return in_array( $v, array( 'all', 'wp_login_only' ), true ) ? $v : 'all';
+				},
+				'default'           => 'all',
 			)
 		);
 
@@ -254,6 +266,16 @@ add_action(
 		register_setting(
 			$group,
 			'init_plugin_suite_void_shield_require_interaction',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+				'default'           => '0',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_lazy_fetch',
 			array(
 				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
@@ -398,6 +420,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$block_rest      = get_option( 'init_plugin_suite_void_shield_block_rest', '0' );
 
 	$enable_login            = get_option( 'init_plugin_suite_void_shield_enable_login_guard', '0' );
+	$login_guard_scope       = get_option( 'init_plugin_suite_void_shield_login_guard_scope', 'all' );
 	$enable_register         = get_option( 'init_plugin_suite_void_shield_enable_register_guard', '0' );
 	$enable_lostpassword     = get_option( 'init_plugin_suite_void_shield_enable_lostpassword_guard', '0' );
 	$enable_multisite_signup = get_option( 'init_plugin_suite_void_shield_enable_multisite_signup', '0' );
@@ -414,6 +437,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$enable_css_rotation = get_option( 'init_plugin_suite_void_shield_enable_css_rotation', '1' );
 	$headless_detection  = get_option( 'init_plugin_suite_void_shield_headless_detection', '1' );
 	$require_interaction = get_option( 'init_plugin_suite_void_shield_require_interaction', '0' );
+	$lazy_fetch          = get_option( 'init_plugin_suite_void_shield_lazy_fetch', '0' );
 
 	$enable_stats            = get_option( 'init_plugin_suite_void_shield_enable_stats', '1' );
 	$enable_dashboard_widget = get_option( 'init_plugin_suite_void_shield_enable_dashboard_widget', '0' );
@@ -522,14 +546,14 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</label>
 					</th>
 					<td>
-						<input type="number" min="60" max="86400" step="60"
+						<input type="number" min="60" max="2592000" step="60"
 								name="init_plugin_suite_void_shield_max_time"
 								id="init_plugin_suite_void_shield_max_time"
 								value="<?php echo esc_attr( $max_time ); ?>"
 								class="small-text">
 						<span class="description"><?php esc_html_e( 'seconds', 'init-void-shield' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'A submission carrying a token older than this is rejected, so a token cannot be captured once and replayed indefinitely. Increase this if visitors on your site often take a long time before submitting.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'A submission carrying a token older than this is rejected, so a token cannot be captured once and replayed indefinitely. On a site with full-page caching, a token is baked in at the moment a page is cached, not the moment a visitor actually loads it — if comments from real visitors are being rejected as expired, raise this to comfortably cover your cache lifetime, or enable Lazy Fetch below instead of raising it.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -568,6 +592,23 @@ function init_plugin_suite_void_shield_render_settings_page() {
 							<input type="checkbox" name="init_plugin_suite_void_shield_enable_login_guard" id="init_plugin_suite_void_shield_enable_login_guard" value="1" <?php checked( $enable_login, '1' ); ?>>
 							<?php esc_html_e( 'Protect the default WP login form against automated login attempts.', 'init-void-shield' ); ?>
 						</label>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_login_guard_scope">
+							<?php esc_html_e( 'Login Guard Scope', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<select name="init_plugin_suite_void_shield_login_guard_scope" id="init_plugin_suite_void_shield_login_guard_scope">
+							<option value="all" <?php selected( $login_guard_scope, 'all' ); ?>><?php esc_html_e( 'Everywhere (wp-login.php + any front-end wp_login_form() usage)', 'init-void-shield' ); ?></option>
+							<option value="wp_login_only" <?php selected( $login_guard_scope, 'wp_login_only' ); ?>><?php esc_html_e( 'wp-login.php only', 'init-void-shield' ); ?></option>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'If your theme or a plugin renders a login form on the front end with wp_login_form() (e.g. a login page, widget, or modal) and that page may be served by a full-page cache, choose "wp-login.php only" to leave that specific form unguarded rather than risk real visitors being rejected. This uses the Referer header as a heuristic to tell the two forms apart, which a determined bot could spoof — the default ("Everywhere") gives the strongest protection and is recommended unless you hit this specific situation.', 'init-void-shield' ); ?>
+						</p>
 					</td>
 				</tr>
 
@@ -795,6 +836,23 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_lazy_fetch">
+							<?php esc_html_e( 'Lazy Fetch (Cache-Safe Tokens)', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_lazy_fetch" id="init_plugin_suite_void_shield_lazy_fetch" value="1" <?php checked( $lazy_fetch, '1' ); ?>>
+							<?php esc_html_e( 'Refresh the time token via a small same-origin JavaScript request as soon as the page truly loads, instead of relying only on the value baked in when the page was rendered.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Recommended for sites with aggressive full-page caching. On such a site, the token baked into a cached page reflects the moment the page was cached, not the moment a real visitor loaded it, which can make legitimate comments look expired under a low Maximum Token Age. When enabled, this refreshes the token client-side (plain JavaScript, no jQuery) right after the page loads, so timing is always measured from the real visit — applies to every guarded form, not just comments. If the request fails or JavaScript is unavailable, the original baked-in token is used as a fallback, so this can only help. Off by default.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>

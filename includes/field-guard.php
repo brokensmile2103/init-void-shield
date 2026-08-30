@@ -188,8 +188,8 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 
 	$html  = '<div aria-hidden="true" style="' . esc_attr( $hidden_style ) . '">';
 	$html .= implode( '', $traps );
-	$html .= '<input type="hidden" name="' . esc_attr( $time_name ) . '" value="' . esc_attr( $current_time ) . '" />';
-	$html .= '<input type="hidden" name="' . esc_attr( $hash_name ) . '" value="' . esc_attr( $time_hash ) . '" />';
+	$html .= '<input type="hidden" name="' . esc_attr( $time_name ) . '" id="' . esc_attr( $time_name ) . '" value="' . esc_attr( $current_time ) . '" />';
+	$html .= '<input type="hidden" name="' . esc_attr( $hash_name ) . '" id="' . esc_attr( $hash_name ) . '" value="' . esc_attr( $time_hash ) . '" />';
 	$html .= '<input type="hidden" name="' . esc_attr( $js_name ) . '" id="' . esc_attr( $js_name ) . '" value="" />';
 	$html .= '</div>';
 
@@ -198,6 +198,8 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 
 	$headless_enabled     = ( '1' === get_option( 'init_plugin_suite_void_shield_headless_detection', '1' ) ) ? 'true' : 'false';
 	$interaction_required = ( '1' === get_option( 'init_plugin_suite_void_shield_require_interaction', '0' ) ) ? 'true' : 'false';
+	$lazy_fetch_enabled   = ( '1' === get_option( 'init_plugin_suite_void_shield_lazy_fetch', '0' ) ) ? 'true' : 'false';
+	$rest_base_url        = esc_url_raw( rest_url( 'init-void-shield/v1/token' ) );
 
 	// Layer: JavaScript + lightweight headless-browser detection, plus an
 	// optional real-interaction check. `navigator.webdriver` is set to true
@@ -208,19 +210,51 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	// mouse, keyboard, touch, or scroll event (any of which a real visitor
 	// naturally triggers while reading/filling the page) before the timer
 	// fires, without recording anything about that event.
+	//
+	// Optional lazy-fetch layer: the time/hash pair rendered into the page
+	// above reflects the moment this PHP ran, which on a full-page-cached
+	// page is the moment the cache was generated -- not the moment a real
+	// visitor actually loaded it. When enabled, this replaces that baked-in
+	// pair with a freshly issued one from a lightweight REST endpoint as
+	// soon as the page truly loads in the visitor's browser, so the
+	// Minimum/Maximum Submit Time gates measure real visit time instead of
+	// cache age. If the request fails (or JS/fetch is unavailable), the
+	// baked-in value is left untouched as a fallback, so this only ever
+	// helps and never introduces a new failure mode.
 	$js = "document.addEventListener('DOMContentLoaded', function() {
 		var jsInput = document.getElementById('" . esc_js( $js_name ) . "');
 		if (!jsInput) {
 			return;
 		}
 		var headlessCheckEnabled = " . $headless_enabled . ';
-		var interactionRequired = ' . $interaction_required . ";
+		var interactionRequired = ' . $interaction_required . ';
+		var lazyFetchEnabled = ' . $lazy_fetch_enabled . ";
 		var interacted = false;
 		if (interactionRequired) {
 			var markInteracted = function() { interacted = true; };
 			['mousemove', 'keydown', 'pointerdown', 'touchstart', 'scroll'].forEach(function(evt) {
 				document.addEventListener(evt, markInteracted, { passive: true, once: true });
 			});
+		}
+		if (lazyFetchEnabled && window.fetch) {
+			var timeInput = document.getElementById('" . esc_js( $time_name ) . "');
+			var hashInput = document.getElementById('" . esc_js( $hash_name ) . "');
+			if (timeInput && hashInput) {
+				var base = '" . esc_js( $rest_base_url ) . "';
+				var sep = base.indexOf('?') > -1 ? '&' : '?';
+				var url = base + sep + 'context=' + encodeURIComponent('" . esc_js( $context ) . "');
+				fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store' })
+					.then(function(response) { return response.ok ? response.json() : null; })
+					.then(function(data) {
+						if (data && data.time && data.hash) {
+							timeInput.value = data.time;
+							hashInput.value = data.hash;
+						}
+					})
+					.catch(function() {
+						// Network or endpoint failure: silently keep the baked-in fallback token.
+					});
+			}
 		}
 		setTimeout(function() {
 			var isBot = false;

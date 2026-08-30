@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.4
+Stable tag: 1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,13 +26,11 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 4. **JavaScript + headless-browser verification** — a hidden token is injected after a configurable delay, and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window) picked up from real Selenium/Puppeteer/Playwright sessions. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't.
 5. **Block REST API Comments** *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover since those requests never carry the honeypot fields or tokens.
 
-**New in 1.2 — optional, opt-in guards you can turn on individually:**
+**New in 1.5:**
 
-- **WordPress core forms** — the same honeypot engine can guard the default login, registration, and lost-password forms at `wp-login.php`.
-- **Form plugin integrations** — Contact Form 7, WPForms, and Gravity Forms each get a one-click toggle; the guard only activates if the corresponding plugin is actually installed and active.
-- **Custom field prefix** — change the honeypot field-name prefix if you suspect a spammer has targeted your site specifically.
-- **CSS trap rotation** — randomizes which hiding technique and field order is used on every render, so bots can't learn one fixed pattern.
-- **Lightweight statistics** — optional counters of blocked submissions by channel and reason, stored in a single non-autoloaded option (no per-submission logs, no personal data).
+- **Login Guard Scope** — a new "wp-login.php only" option for the Login Guard: stop guarding a front-end `wp_login_form()` usage (e.g. a custom login page, widget, or modal) entirely, keeping full protection on the native `wp-login.php` form. Useful if that front-end form lives on a page a full-page cache might serve stale. Uses the Referer header as a heuristic to tell the two forms apart — a deliberate, disclosed trade-off; the default ("Everywhere") remains the strongest option.
+- **Higher Maximum Token Age ceiling** — raised from 24 hours to 30 days, for sites with long-lived full-page caching.
+- **Lazy Fetch (Cache-Safe Tokens)** — new optional layer (off by default): refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery) as soon as the page truly loads, instead of relying only on the value baked in when the page was rendered — which, on a cached page, reflects when the cache was generated, not when a real visitor loaded it. Applies to every guarded form. If the request fails or JavaScript is unavailable, the original baked-in token is used as a fallback, so this can only help, never hurt.
 
 **New in 1.4:**
 
@@ -78,7 +76,10 @@ Yes. Enable **Apply to Logged-in Users** in the settings if your site has open r
 Not by default. The core layers only run on the classic comment form (`preprocess_comment`); comments posted directly to `wp/v2/comments` never carry a honeypot or JS token, so those checks don't apply. The optional "Block REST API Comments" setting is available to close that endpoint entirely if you do not use a headless app or other legitimate REST client for comments.
 
 = Are the WordPress login/registration/lost-password guards enabled by default? =
-No, all three are off by default since they guard authentication itself. Turn them on individually under **WordPress Core Forms** in the settings, and confirm your own login flow still works afterward. Each covers WordPress's own default form markup at `wp-login.php`, and the login guard also covers `wp_login_form()` when used on the front end (e.g. a widget or theme template). A custom login page/plugin, or Multisite's `wp-signup.php` registration flow, renders different markup and isn't covered. Each guard can also be force-disabled per request with a dedicated filter (`init_plugin_suite_void_shield_skip_login_verification`, `..._skip_register_verification`, `..._skip_lostpassword_verification`), which takes priority over the settings-page toggle.
+No, all three are off by default since they guard authentication itself. Turn them on individually under **WordPress Core Forms** in the settings, and confirm your own login flow still works afterward. Each covers WordPress's own default form markup at `wp-login.php`, and the login guard also covers `wp_login_form()` when used on the front end (e.g. a widget or theme template), unless you set **Login Guard Scope** to "wp-login.php only" — see the next question. A custom login page/plugin, or Multisite's `wp-signup.php` registration flow, renders different markup and isn't covered. Each guard can also be force-disabled per request with a dedicated filter (`init_plugin_suite_void_shield_skip_login_verification`, `..._skip_register_verification`, `..._skip_lostpassword_verification`), which takes priority over the settings-page toggle.
+
+= What is Login Guard Scope? =
+By default ("Everywhere"), the Login Guard protects both the native `wp-login.php` form and any front-end `wp_login_form()` usage (e.g. a custom login page, widget, or modal). If that front-end form lives on a page your cache plugin might serve stale, switch the scope to **"wp-login.php only"** to leave it entirely unguarded rather than risk a real visitor's login being rejected — the native `wp-login.php` form stays fully protected either way. This uses the Referer header as a heuristic to tell the two forms apart, which a determined bot could spoof, so it's a deliberate trade-off: only switch away from "Everywhere" if you've hit this specific caching situation.
 
 = Are the Contact Form 7 / WPForms / Gravity Forms integrations enabled by default? =
 No. Each is off by default and only takes effect if the matching plugin is active — the settings page shows a "detected / not detected" status next to each toggle.
@@ -90,7 +91,13 @@ No, same as the other integrations: each is off by default and only takes effect
 Both build their forms client-side and collect submitted data through their own JavaScript field model rather than serializing the whole `<form>` element, so a honeypot field simply appended to the page would not reliably be sent to the server — it would look like protection without actually doing anything. Both also already ship their own built-in honeypot field. Support may be reconsidered if a reliable hook becomes available.
 
 = What is the Maximum Token Age setting? =
-Each guard issues a signed token good for a limited time window: too fast (below Minimum Submit Time) and too old (above Maximum Token Age) are both rejected. The ceiling exists so a token cannot be captured once and replayed indefinitely; the default of 1 hour is generous enough for a visitor who takes their time filling out a form. Increase it if legitimate visitors on your site routinely take longer than that.
+Each guard issues a signed token good for a limited time window: too fast (below Minimum Submit Time) and too old (above Maximum Token Age) are both rejected. The ceiling exists so a token cannot be captured once and replayed indefinitely; the default of 1 hour is generous enough for a visitor who takes their time filling out a form. Increase it (up to 30 days) if legitimate visitors on your site routinely take longer than that, or if your site uses full-page caching — see the next question.
+
+= My site uses aggressive full-page caching and legitimate comments are being rejected as "expired" — what do I do? =
+On a cached page, the time token baked into the HTML reflects the moment the page was cached, not the moment a real visitor loaded it. If your cache lifetime is long, that gap can exceed the Maximum Token Age. Two options, either works on its own: raise Maximum Token Age to comfortably cover your cache lifetime, or enable **Lazy Fetch** under Advanced Protection, which refreshes the token client-side right after the page truly loads, so timing is always measured from the real visit regardless of cache age.
+
+= What does Lazy Fetch do, and is it safe? =
+When enabled, a small same-origin JavaScript request (no jQuery, no external service) fetches a fresh, correctly signed time token right after the page loads, and overwrites the one baked in at render time. It's stateless — the endpoint only recomputes the same signed hash the page would already have shown, and is only registered at all while Lazy Fetch is enabled. If the request fails, or JavaScript is unavailable, the original baked-in token is used as-is, exactly like before Lazy Fetch existed — so enabling it can only help, never introduce a new failure mode. Off by default; applies to every guarded form, not just comments.
 
 = I updated from an older version and my Minimum Submit Time / JS Token Delay no longer behaves the way I remembered — why? =
 Versions before 1.4 had a bug where these two settings were saved correctly but never actually read back during verification, so the plugin always silently enforced the defaults (3 seconds / 1000ms) no matter what was configured. 1.4 fixes this, so a custom value you set earlier may now be enforced for the first time. This is a bug fix, not a new restriction — just double-check both values on the settings page after updating.
@@ -114,6 +121,11 @@ No. Enable **Show Dashboard Widget** under Statistics. It's only visible to user
 Yes. A comprehensive filter API is available. See the documentation on GitHub.
 
 == Changelog ==
+
+= 1.5 – August 30, 2026 =
+* Added **Login Guard Scope**: a new "wp-login.php only" option for the Login Guard, which stops guarding a front-end `wp_login_form()` usage (e.g. a custom login page, widget, or modal) entirely while keeping full protection on the native `wp-login.php` form. Intended for sites where that front-end form lives on a page a full-page cache might serve stale; uses the Referer header as a heuristic to tell the two forms apart (a disclosed trade-off, not a cryptographic guarantee). The default ("Everywhere") is unchanged and remains the strongest option.
+* Raised the **Maximum Token Age** ceiling from 24 hours to 30 days, so sites with long-lived full-page caching can set a value that comfortably covers their cache lifetime.
+* Added **Lazy Fetch (Cache-Safe Tokens)** under Advanced Protection (off by default): refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery, no external service) as soon as the page truly loads, instead of relying only on the value baked in at render time — which, on a cached page, reflects when the cache was generated rather than when a real visitor loaded it. Applies to every guarded form. Falls back to the original baked-in token if the request fails or JavaScript is unavailable, so enabling it can only help, never introduce a new failure mode.
 
 = 1.4 – August 30, 2026 =
 * Security: the signed time token is now bound to the specific guard context it was issued for (previously it was only a function of the timestamp, so a valid token captured from one form — e.g. a public comment form — could in theory be replayed against a different, more sensitive context, such as the login guard). Field names already differed per context, but the token itself did not.

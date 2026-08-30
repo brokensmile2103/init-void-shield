@@ -3,7 +3,7 @@
  * Plugin Name: Init Void Shield
  * Plugin URI:  https://inithtml.com/plugin/init-void-shield/
  * Description: Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments, core forms, and popular form plugins. Invisible to humans, a void to bots.
- * Version:     1.4
+ * Version:     1.5
  * Author:      Init HTML
  * Author URI:  https://inithtml.com/
  * Text Domain: init-void-shield
@@ -20,7 +20,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ===== CONSTANTS ===== //
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION', '1.4' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION', '1.5' );
 define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_SLUG', 'init-void-shield' );
 define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_OPTION', 'init_plugin_suite_void_shield_settings' );
 define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_URL', plugin_dir_url( __FILE__ ) );
@@ -30,6 +30,7 @@ define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_INC', INIT_PLUGIN_SUITE_VOID_SHIELD_PATH 
 // ===== INCLUDES ===== //
 // Shared engine and infrastructure (order matters: field-guard/stats first).
 require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'field-guard.php';
+require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'lazy-fetch.php';
 require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'stats.php';
 
 // Comment form guard (core feature, always loaded).

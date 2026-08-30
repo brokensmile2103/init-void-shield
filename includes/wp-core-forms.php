@@ -6,8 +6,9 @@
  * password forms, plus the Multisite site/user signup form. Each covers
  * WordPress's own default markup at wp-login.php (and wp-signup.php for
  * Multisite), plus wp_login_form() when used on the front end (e.g. a
- * [loginform] block/widget or a theme template); a custom login page or
- * registration plugin renders different forms and is not covered here.
+ * [loginform] block/widget or a theme template) unless the login guard is
+ * scoped to 'wp_login_only'; a custom login page or registration plugin
+ * renders different forms and is not covered here.
  *
  * @package Init_Void_Shield
  */
@@ -42,6 +43,24 @@ function init_plugin_suite_void_shield_login_guard_enabled() {
 	 * @param bool $skip Whether to skip the login guard. Default false.
 	 */
 	return ! apply_filters( 'init_plugin_suite_void_shield_skip_login_verification', false );
+}
+
+/**
+ * Get the configured scope of the login guard.
+ *
+ * 'all' (default) guards both the native wp-login.php form and any
+ * front-end wp_login_form() usage. 'wp_login_only' guards only the native
+ * wp-login.php form, and leaves any front-end wp_login_form() usage
+ * entirely unguarded -- useful if that front-end form lives on a page a
+ * full-page cache plugin may serve stale, where a baked-in time token
+ * could otherwise go stale before a real visitor submits it.
+ *
+ * @return string 'all' or 'wp_login_only'.
+ */
+function init_plugin_suite_void_shield_login_guard_scope() {
+	$scope = get_option( 'init_plugin_suite_void_shield_login_guard_scope', 'all' );
+
+	return in_array( $scope, array( 'all', 'wp_login_only' ), true ) ? $scope : 'all';
 }
 
 add_action( 'login_form', 'init_plugin_suite_void_shield_render_login_guard' );
@@ -84,10 +103,54 @@ function init_plugin_suite_void_shield_render_login_guard_frontend( $content ) {
 		return $content;
 	}
 
+	if ( 'wp_login_only' === init_plugin_suite_void_shield_login_guard_scope() ) {
+		return $content;
+	}
+
 	return $content . init_plugin_suite_void_shield_build_guard_markup( 'login' );
 }
 
 add_filter( 'authenticate', 'init_plugin_suite_void_shield_guard_login', 999, 1 );
+
+/**
+ * Determine whether a login attempt is exempt from verification because the
+ * guard is scoped to 'wp_login_only' and this attempt appears to have come
+ * from a front-end wp_login_form() page rather than the native wp-login.php
+ * screen.
+ *
+ * This is a heuristic, not a cryptographic guarantee: it reads the Referer
+ * header, which a sufficiently motivated bot could spoof. It only matters
+ * when the site owner has explicitly opted into the 'wp_login_only' scope,
+ * accepting that trade-off in exchange for never risking a false rejection
+ * on a front-end login form that might live on a cached page. A missing
+ * Referer -- the common signature of a script POSTing directly without ever
+ * loading a page -- is treated as NOT exempt, so blind credential-stuffing
+ * attempts remain fully guarded either way.
+ *
+ * @return bool
+ */
+function init_plugin_suite_void_shield_login_request_is_scope_exempt() {
+	if ( 'wp_login_only' !== init_plugin_suite_void_shield_login_guard_scope() ) {
+		return false;
+	}
+
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- read-only heuristic, not used to authorize anything; see docblock above.
+	$referer = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
+
+	if ( '' === $referer ) {
+		return false;
+	}
+
+	$is_exempt = false === stripos( $referer, 'wp-login.php' );
+
+	/**
+	 * Override the 'wp_login_only' scope-exemption heuristic.
+	 *
+	 * @param bool   $is_exempt Whether this request is currently considered exempt.
+	 * @param string $referer   The raw Referer header value that was checked.
+	 */
+	return (bool) apply_filters( 'init_plugin_suite_void_shield_login_scope_exempt', $is_exempt, $referer );
+}
 
 /**
  * Reject login attempts that fail the honeypot check.
@@ -108,6 +171,10 @@ function init_plugin_suite_void_shield_guard_login( $user ) {
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- anti-spam gate; only a structural check that this is a real login form POST.
 	if ( ! init_plugin_suite_void_shield_is_post_request() || ! isset( $_POST['log'] ) ) {
+		return $user;
+	}
+
+	if ( init_plugin_suite_void_shield_login_request_is_scope_exempt() ) {
 		return $user;
 	}
 
