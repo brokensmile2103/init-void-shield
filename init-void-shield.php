@@ -20,12 +20,13 @@
 defined( 'ABSPATH' ) || exit;
 
 // ===== CONSTANTS ===== //
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION', '1.5' );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_SLUG', 'init-void-shield' );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_OPTION', 'init_plugin_suite_void_shield_settings' );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_URL', plugin_dir_url( __FILE__ ) );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_PATH', plugin_dir_path( __FILE__ ) );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_INC', INIT_PLUGIN_SUITE_VOID_SHIELD_PATH . 'includes/' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION',   '1.5' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_SLUG', 	   'init-void-shield' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_OPTION',    'init_plugin_suite_void_shield_settings' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_NAMESPACE', 'initvoshi/v1' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_URL',       plugin_dir_url( __FILE__ ) );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_PATH',      plugin_dir_path( __FILE__ ) );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_INC',       INIT_PLUGIN_SUITE_VOID_SHIELD_PATH . 'includes/' );
 
 // ===== INCLUDES ===== //
 // Shared engine and infrastructure (order matters: field-guard/stats first).

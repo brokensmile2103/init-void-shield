@@ -33,7 +33,7 @@ function init_plugin_suite_void_shield_register_token_route() {
 	}
 
 	register_rest_route(
-		'init-void-shield/v1',
+		INIT_PLUGIN_SUITE_VOID_SHIELD_NAMESPACE,
 		'/token',
 		array(
 			'methods'             => WP_REST_Server::READABLE,

@@ -118,14 +118,27 @@ Only aggregate counters (a total, a breakdown by channel, a breakdown by block r
 No. Enable **Show Dashboard Widget** under Statistics. It's only visible to users who can manage options, and only shows the same aggregate counters as the settings page (no per-submission data).
 
 = Can developers customize the behavior? =
-Yes. A comprehensive filter API is available. See the documentation on GitHub.
+Yes. See the **Filters** section below for the full list, or the documentation on GitHub for more detail.
+
+== Filters ==
+
+A short reference of the developer filters shipped with the plugin (all are standard WordPress filters, added with `add_filter()`):
+
+* `init_plugin_suite_void_shield_skip_verification` — skip comment-form verification for a request.
+* `init_plugin_suite_void_shield_skip_login_verification` / `_register_verification` / `_lostpassword_verification` / `_multisite_signup_verification` — force-disable an individual WordPress Core Forms guard, overriding its settings-page toggle.
+* `init_plugin_suite_void_shield_login_scope_exempt` — override the Referer-based heuristic used by the "wp-login.php only" Login Guard Scope.
+* `init_plugin_suite_void_shield_honeypot_html` — filter the rendered honeypot HTML block; receives the context string as a second argument.
+* `init_plugin_suite_void_shield_kill_response_message` / `_title` / `_code` — customize the soft-kill response shown to bots on the comment form.
+* `init_plugin_suite_void_shield_min_time` / `_max_time` / `_js_delay` — override the Minimum Submit Time, Maximum Token Age, and JS Token Delay thresholds.
+* `init_plugin_suite_void_shield_hidden_style_variants` — customize the pool of CSS techniques used to hide honeypot fields.
+* `init_plugin_suite_void_shield_{context}_blocked_message` — customize the rejection message for a given guard (e.g. `..._login_blocked_message`, `..._woocommerce_blocked_message`, `..._bbpress_blocked_message`).
 
 == Changelog ==
 
 = 1.5 – August 30, 2026 =
 * Added **Login Guard Scope**: a new "wp-login.php only" option for the Login Guard, which stops guarding a front-end `wp_login_form()` usage (e.g. a custom login page, widget, or modal) entirely while keeping full protection on the native `wp-login.php` form. Intended for sites where that front-end form lives on a page a full-page cache might serve stale; uses the Referer header as a heuristic to tell the two forms apart (a disclosed trade-off, not a cryptographic guarantee). The default ("Everywhere") is unchanged and remains the strongest option.
 * Raised the **Maximum Token Age** ceiling from 24 hours to 30 days, so sites with long-lived full-page caching can set a value that comfortably covers their cache lifetime.
-* Added **Lazy Fetch (Cache-Safe Tokens)** under Advanced Protection (off by default): refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery, no external service) as soon as the page truly loads, instead of relying only on the value baked in at render time — which, on a cached page, reflects when the cache was generated rather than when a real visitor loaded it. Applies to every guarded form. Falls back to the original baked-in token if the request fails or JavaScript is unavailable, so enabling it can only help, never introduce a new failure mode.
+* Added **Lazy Fetch (Cache-Safe Tokens)** under Advanced Protection (off by default): refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery, no external service) as soon as the page truly loads, instead of relying only on the value baked in at render time — which, on a cached page, reflects when the cache was generated rather than when a real visitor loaded it. Applies to every guarded form. Falls back to the original baked-in token if the request fails or JavaScript is unavailable, so enabling it can only help, never introduce a new failure mode. Its REST route is registered under the `initvoshi/v1` namespace, matching the naming convention used across the Init Plugin Suite.
 
 = 1.4 – August 30, 2026 =
 * Security: the signed time token is now bound to the specific guard context it was issued for (previously it was only a function of the timestamp, so a valid token captured from one form — e.g. a public comment form — could in theory be replayed against a different, more sensitive context, such as the login guard). Field names already differed per context, but the token itself did not.

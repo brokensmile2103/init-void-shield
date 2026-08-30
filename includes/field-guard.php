@@ -199,7 +199,7 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	$headless_enabled     = ( '1' === get_option( 'init_plugin_suite_void_shield_headless_detection', '1' ) ) ? 'true' : 'false';
 	$interaction_required = ( '1' === get_option( 'init_plugin_suite_void_shield_require_interaction', '0' ) ) ? 'true' : 'false';
 	$lazy_fetch_enabled   = ( '1' === get_option( 'init_plugin_suite_void_shield_lazy_fetch', '0' ) ) ? 'true' : 'false';
-	$rest_base_url        = esc_url_raw( rest_url( 'init-void-shield/v1/token' ) );
+	$rest_base_url        = esc_url_raw( rest_url( INIT_PLUGIN_SUITE_VOID_SHIELD_NAMESPACE . '/token' ) );
 
 	// Layer: JavaScript + lightweight headless-browser detection, plus an
 	// optional real-interaction check. `navigator.webdriver` is set to true
