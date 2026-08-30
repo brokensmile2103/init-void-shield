@@ -4,13 +4,13 @@
 
 **No CAPTCHA. No external JS. No database clutter. No user friction.**
 
-[![Version](https://img.shields.io/badge/stable-v1.4-blue.svg)](https://wordpress.org/plugins/init-void-shield/)
+[![Version](https://img.shields.io/badge/stable-v1.5-blue.svg)](https://wordpress.org/plugins/init-void-shield/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
 ## Overview
 
-**Init Void Shield** protects your WordPress comment forms, the default login/registration/lost-password forms, Multisite signup, WooCommerce/bbPress/BuddyPress, and popular form plugins with a layered honeypot defense that requires no database tables, no external JavaScript, and no user friction.
+**Init Void Shield** protects your WordPress comment forms, the default login/registration/lost-password forms, Multisite signup, WooCommerce/bbPress/BuddyPress, and popular form plugins with a layered honeypot defense that requires no database tables, no external JavaScript, and no user friction — and stays accurate even on aggressively cached sites.
 
 - Zero database footprint — no tables, no rows; stats use a single non-autoloaded option
 - Zero external JS / CDN calls — everything is self-contained
@@ -33,14 +33,16 @@ Perfect for blogs, communities, news sites, online stores, or any WordPress site
 - **WordPress core form guards** *(off by default)* — the same honeypot engine can protect the default login, registration, lost-password, and Multisite signup forms, enabled individually
 - **Form plugin integrations** *(off by default)* — one-click honeypot guard for Contact Form 7, WPForms, and Gravity Forms; each only activates if the corresponding plugin is detected active
 - **Community & e-commerce integrations** *(new in 1.4, off by default)* — one-click honeypot guard for WooCommerce (My Account registration form), bbPress (New Topic and Reply forms), and BuddyPress (registration form); each only activates if the corresponding plugin is detected active
-- **Require Real User Interaction** *(new in 1.4, off by default)* — also requires at least one real mouse, keyboard, touch, or scroll event before a submission is accepted, catching bots that simply wait out the JS delay instead of interacting with the page
-- **Dashboard widget** *(new in 1.4, off by default)* — a compact "Blocked Submissions" summary on the WordPress Dashboard, showing the top blocked channels and reasons
+- **Require Real User Interaction** *(off by default)* — also requires at least one real mouse, keyboard, touch, or scroll event before a submission is accepted, catching bots that simply wait out the JS delay instead of interacting with the page
+- **Lazy Fetch (Cache-Safe Tokens)** *(new in 1.5, off by default)* — refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery) as soon as the page truly loads, instead of relying only on the value baked in at render time. On a heavily full-page-cached site that value reflects when the page was *cached*, not when a real visitor loaded it; this fixes that gap and applies to every guarded form. Falls back to the original baked-in token if the request fails, so it can only help
+- **Login Guard Scope** *(new in 1.5)* — scope the Login Guard to "wp-login.php only" to leave a front-end `wp_login_form()` usage (widget, modal, custom login page) completely unguarded, e.g. if that page might be served by a full-page cache; the native `wp-login.php` form stays fully protected either way
+- **Dashboard widget** *(off by default)* — a compact "Blocked Submissions" summary on the WordPress Dashboard, showing the top blocked channels and reasons
 - **Custom field prefix** — change the honeypot field-name prefix if you suspect a spammer has targeted your site specifically
 - **CSS trap rotation** — randomizes the hiding technique and trap field order on every render, so bots can't learn one fixed pattern
 - **Lightweight statistics** *(opt-out)* — blocked-submission counters by channel and reason, stored in a single non-autoloaded option; no per-submission logs, no personal data
 - **Soft-kill responses** — spam bots hitting the comment form get HTTP 200 OK, deceiving them into thinking the comment was posted successfully
 - **Logged-in user bypass** — authenticated users skip comment-form verification by default; enable **Apply to Logged-in Users** if your site has open registration or untrusted members
-- **Configurable thresholds** — adjust minimum submit time, maximum token age, and JS injection delay to match your audience
+- **Configurable thresholds** — adjust minimum submit time, maximum token age (up to 30 days), and JS injection delay to match your audience
 - **Full filter API** — customize every layer via WordPress filters
 - **Lightweight codebase** — backend-only, no frontend assets, fast by design
 - **Safe-by-default** — doesn't override core behavior unless a check fails, and every new guard is opt-in
@@ -71,28 +73,102 @@ Settings → Init Void Shield
 - **Apply to Logged-in Users** — force verification even for authenticated users
 - **Minimum Submit Time** — seconds a user must spend between page load and submit (default: 3)
 - **JavaScript Token Delay** — milliseconds before the JS token is injected into the form (default: 1000)
-- **Maximum Token Age** *(new in 1.4)* — seconds after which a token is considered stale and rejected, so it can't be captured once and replayed indefinitely (default: 3600)
+- **Maximum Token Age** — seconds after which a token is considered stale and rejected, so it can't be captured once and replayed indefinitely (default: 3600, up to 2,592,000 / 30 days)
 - **Block REST API Comments** — reject comments posted directly to the REST API endpoint `wp/v2/comments`
 
 **WordPress Core Forms** *(off by default)*
 - **Guard Login Form**, **Guard Registration Form**, **Guard Lost Password Form** — protect the default WP forms at `wp-login.php`. Each covers only WordPress's own default markup, plus `wp_login_form()` on the front end for the login guard; a custom login page/plugin isn't covered
-- **Guard Multisite Signup Form** *(new in 1.4)* — protect the site/user signup form at `wp-signup.php`; only has an effect on a Multisite install
+- **Login Guard Scope** *(new in 1.5)* — "Everywhere" (default) covers both `wp-login.php` and any front-end `wp_login_form()` usage; "wp-login.php only" leaves the front-end usage entirely unguarded (e.g. if it lives on a page a full-page cache might serve stale) using the Referer header as a heuristic to tell the two apart
+- **Guard Multisite Signup Form** — protect the site/user signup form at `wp-signup.php`; only has an effect on a Multisite install
 
 **Form Plugin Integrations** *(off by default)*
 - **Contact Form 7**, **WPForms**, **Gravity Forms** — one toggle per plugin; only takes effect if that plugin is active (a status badge on the settings page shows detection)
 
-**Community & E-commerce Integrations** *(new in 1.4, off by default)*
+**Community & E-commerce Integrations** *(off by default)*
 - **WooCommerce Registration**, **bbPress Topics & Replies**, **BuddyPress Registration** — one toggle per plugin; only takes effect if that plugin is active (a status badge on the settings page shows detection)
 
 **Advanced Protection**
 - **Custom Field Prefix** — prefix used to build honeypot field names (lowercase letters, numbers, underscore only)
 - **CSS Trap Rotation** — randomize the CSS technique and field order used to hide traps on every render
 - **Headless Browser Detection** — flag `navigator.webdriver` and zero-size browser windows via the JS token script; no external calls
-- **Require Real User Interaction** *(new in 1.4, off by default)* — also require at least one real mouse, keyboard, touch, or scroll event before a submission is accepted
+- **Require Real User Interaction** *(off by default)* — also require at least one real mouse, keyboard, touch, or scroll event before a submission is accepted
+- **Lazy Fetch (Cache-Safe Tokens)** *(new in 1.5, off by default)* — refresh the time token client-side right after the page loads instead of relying only on the value baked in at render time; recommended for sites with aggressive full-page caching
 
 **Statistics** *(on by default, opt-out)*
 - **Track Blocked Submissions** — lightweight, non-autoloaded counters (total, by channel, by reason), with a reset action
-- **Show Dashboard Widget** *(new in 1.4, off by default)* — a compact "Blocked Submissions" summary on the WordPress Dashboard, visible to users who can manage options
+- **Show Dashboard Widget** *(off by default)* — a compact "Blocked Submissions" summary on the WordPress Dashboard, visible to users who can manage options
+
+## Filters for Developers
+
+Init Void Shield ships a full filter API so you can customize its behavior without touching core files.
+
+**Skip verification for a specific request:**
+```php
+add_filter( 'init_plugin_suite_void_shield_skip_verification', '__return_true' );
+```
+
+**Force-disable an individual WordPress core form guard, regardless of the settings-page toggle** (each takes priority over the UI setting):
+```php
+add_filter( 'init_plugin_suite_void_shield_skip_login_verification', '__return_true' );
+add_filter( 'init_plugin_suite_void_shield_skip_register_verification', '__return_true' );
+add_filter( 'init_plugin_suite_void_shield_skip_lostpassword_verification', '__return_true' );
+add_filter( 'init_plugin_suite_void_shield_skip_multisite_signup_verification', '__return_true' );
+```
+
+**Override the Login Guard Scope's Referer-based exemption heuristic** (`$referer` is the raw header value that was checked):
+```php
+add_filter( 'init_plugin_suite_void_shield_login_scope_exempt', function ( $is_exempt, $referer ) {
+    return $is_exempt;
+}, 10, 2 );
+```
+
+**Customize the honeypot HTML block** — `$context` is a context string (`comment_123`, `login`, `cf7_4`, `woocommerce_register`, `bbpress_topic`, `buddypress_register`, `multisite_signup`…):
+```php
+add_filter( 'init_plugin_suite_void_shield_honeypot_html', function ( $html, $context ) {
+    return $html;
+}, 10, 2 );
+```
+
+**Customize the message/title/response code shown when a bot is soft-killed on the comment form:**
+```php
+add_filter( 'init_plugin_suite_void_shield_kill_response_message', function ( $msg ) {
+    return 'Spam detected.';
+} );
+add_filter( 'init_plugin_suite_void_shield_kill_response_title', function ( $title ) {
+    return 'Blocked';
+} );
+add_filter( 'init_plugin_suite_void_shield_kill_response_code', function ( $code ) {
+    return 200; // Default: 200, so bots believe the spam succeeded.
+} );
+```
+
+**Customize the Minimum Submit Time, Maximum Token Age, or JS Token Delay** (each still reads the settings-page value first; the filter applies on top):
+```php
+add_filter( 'init_plugin_suite_void_shield_min_time', function ( $seconds ) {
+    return 5;
+} );
+add_filter( 'init_plugin_suite_void_shield_max_time', function ( $seconds ) {
+    return 7200;
+} );
+add_filter( 'init_plugin_suite_void_shield_js_delay', function ( $milliseconds ) {
+    return 1500;
+} );
+```
+
+**Customize the pool of CSS techniques used to hide the honeypot fields:**
+```php
+add_filter( 'init_plugin_suite_void_shield_hidden_style_variants', function ( $variants ) {
+    $variants[] = 'position:absolute;height:0;overflow:hidden;';
+    return $variants;
+} );
+```
+
+**Customize the block reason shown alongside a rejected submission** on integrations that surface one (e.g. WooCommerce registration, bbPress, BuddyPress, Multisite signup) — each has its own `..._blocked_message` filter, for example:
+```php
+add_filter( 'init_plugin_suite_void_shield_login_blocked_message', function ( $message ) {
+    return 'Login blocked.';
+} );
+```
 
 ## Installation
 
