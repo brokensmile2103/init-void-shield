@@ -3,7 +3,7 @@
  * Plugin Name: Init Void Shield
  * Plugin URI:  https://inithtml.com/plugin/init-void-shield/
  * Description: Zero-DB, zero-external-JS honeypot anti-spam for WordPress comments, core forms, and popular form plugins. Invisible to humans, a void to bots.
- * Version:     1.5
+ * Version:     1.6
  * Author:      Init HTML
  * Author URI:  https://inithtml.com/
  * Text Domain: init-void-shield
@@ -20,13 +20,13 @@
 defined( 'ABSPATH' ) || exit;
 
 // ===== CONSTANTS ===== //
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION',   '1.5' );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_SLUG', 	   'init-void-shield' );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_OPTION',    'init_plugin_suite_void_shield_settings' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_VERSION', '1.6' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_SLUG', 'init-void-shield' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_OPTION', 'init_plugin_suite_void_shield_settings' );
 define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_NAMESPACE', 'initvoshi/v1' );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_URL',       plugin_dir_url( __FILE__ ) );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_PATH',      plugin_dir_path( __FILE__ ) );
-define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_INC',       INIT_PLUGIN_SUITE_VOID_SHIELD_PATH . 'includes/' );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_URL', plugin_dir_url( __FILE__ ) );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_PATH', plugin_dir_path( __FILE__ ) );
+define( 'INIT_PLUGIN_SUITE_VOID_SHIELD_INC', INIT_PLUGIN_SUITE_VOID_SHIELD_PATH . 'includes/' );
 
 // ===== INCLUDES ===== //
 // Shared engine and infrastructure (order matters: field-guard/stats first).
@@ -45,6 +45,7 @@ require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'integration-gravityforms.php';
 require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'integration-woocommerce.php';
 require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'integration-bbpress.php';
 require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'integration-buddypress.php';
+require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'integration-wpdiscuz.php';
 
 // Settings screen.
 require_once INIT_PLUGIN_SUITE_VOID_SHIELD_INC . 'settings-page.php';

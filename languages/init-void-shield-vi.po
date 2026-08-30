@@ -284,16 +284,16 @@ msgstr ""
 "\"hết hạn\", hãy tăng giá trị này để đủ bao phủ thời gian cache, hoặc bật "
 "Lazy Fetch bên dưới thay vì tăng giá trị này."
 
-#: includes/settings-page.php:564
+#: includes/settings-page.php:551
 msgid "Block REST API Comments"
 msgstr "Chặn bình luận qua REST API"
 
-#: includes/settings-page.php:570
+#: includes/settings-page.php:557
 msgid ""
 "Reject comments submitted directly through the REST API (wp/v2/comments)."
 msgstr "Từ chối bình luận gửi trực tiếp qua REST API (wp/v2/comments)."
 
-#: includes/settings-page.php:573
+#: includes/settings-page.php:560
 msgid ""
 "The honeypot and JS token checks above only cover the classic comment form; "
 "REST API submissions bypass them entirely. Enable this only if your site "
@@ -305,11 +305,11 @@ msgstr ""
 "tùy chọn này nếu site của bạn không có app headless hay client hợp lệ nào "
 "khác gửi bình luận qua REST API."
 
-#: includes/settings-page.php:579
+#: includes/settings-page.php:555
 msgid "WordPress Core Forms"
 msgstr "Các form lõi WordPress"
 
-#: includes/settings-page.php:581
+#: includes/settings-page.php:586
 msgid ""
 "Optional honeypot protection for the default WordPress login, registration, "
 "and lost-password forms at wp-login.php. Disabled by default, since these "

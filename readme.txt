@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5
+Stable tag: 1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,15 +26,15 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 4. **JavaScript + headless-browser verification** — a hidden token is injected after a configurable delay, and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window) picked up from real Selenium/Puppeteer/Playwright sessions. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't.
 5. **Block REST API Comments** *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover since those requests never carry the honeypot fields or tokens.
 
-**New in 1.5:**
+**Recent updates (1.4–1.6):**
 
+- **Fixed:** a setting could get permanently stuck at its default value once saved back to it, unable to change afterwards — most noticeable on the main "Enable Init Void Shield" toggle, since a fresh install already starts there. Caused by a WordPress core edge case triggered by `register_setting()`'s `default` argument; removed from every setting in this plugin, with no change to displayed defaults.
+- **wpDiscuz compatibility** — wpDiscuz builds its comment submissions from a fixed set of fields rather than serializing its form, so this plugin's checks can never see or verify them. Enabling wpDiscuz on a site now automatically exempts its comments from verification instead of rejecting real visitors with a check they can't satisfy — a compatibility bypass, not protection.
+- **Fixed:** a comment submission's post ID is now read from the value WordPress core has already resolved, instead of re-reading the raw `comment_post_ID` POST field directly, which not every comment form sends under that exact name.
 - **Login Guard Scope** — a new "wp-login.php only" option for the Login Guard: stop guarding a front-end `wp_login_form()` usage (e.g. a custom login page, widget, or modal) entirely, keeping full protection on the native `wp-login.php` form. Useful if that front-end form lives on a page a full-page cache might serve stale. Uses the Referer header as a heuristic to tell the two forms apart — a deliberate, disclosed trade-off; the default ("Everywhere") remains the strongest option.
 - **Higher Maximum Token Age ceiling** — raised from 24 hours to 30 days, for sites with long-lived full-page caching.
-- **Lazy Fetch (Cache-Safe Tokens)** — new optional layer (off by default): refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery) as soon as the page truly loads, instead of relying only on the value baked in when the page was rendered — which, on a cached page, reflects when the cache was generated, not when a real visitor loaded it. Applies to every guarded form. If the request fails or JavaScript is unavailable, the original baked-in token is used as a fallback, so this can only help, never hurt.
-
-**New in 1.4:**
-
-- **Context-bound, self-expiring time tokens** — the signed time token is now bound to the specific form it was issued for and rejected once it goes stale, hardening the core anti-replay layer.
+- **Lazy Fetch (Cache-Safe Tokens)** — optional layer (off by default): refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery) as soon as the page truly loads, instead of relying only on the value baked in when the page was rendered — which, on a cached page, reflects when the cache was generated, not when a real visitor loaded it. Applies to every guarded form. If the request fails or JavaScript is unavailable, the original baked-in token is used as a fallback, so this can only help, never hurt.
+- **Context-bound, self-expiring time tokens** — the signed time token is bound to the specific form it was issued for and rejected once it goes stale, hardening the core anti-replay layer.
 - **Optional real-interaction check** — under Advanced Protection, require at least one genuine mouse, keyboard, touch, or scroll event before a submission is accepted, catching bots that simply wait out the JS delay instead of interacting with the page. Off by default.
 - **Three more integrations** — WooCommerce (My Account registration), bbPress (New Topic and Reply forms), and BuddyPress (registration), plus a guard for the Multisite site/user signup form (`wp-signup.php`). Each is off by default, same as the existing integrations.
 - **Optional Dashboard widget** — a compact "Blocked Submissions" summary on the WordPress Dashboard, off by default, visible only to users who can manage options.
@@ -134,6 +134,11 @@ A short reference of the developer filters shipped with the plugin (all are stan
 * `init_plugin_suite_void_shield_{context}_blocked_message` — customize the rejection message for a given guard (e.g. `..._login_blocked_message`, `..._woocommerce_blocked_message`, `..._bbpress_blocked_message`).
 
 == Changelog ==
+
+= 1.6 – August 30, 2026 =
+* Fixed: a setting could get permanently stuck at its saved value and silently refuse to change on Save — most noticeable on "Enable Init Void Shield", since a fresh install starts already at its default of checked. Caused by `register_setting()`'s `default` argument, which triggers a WordPress core edge case in `update_option()` once a setting's value matches that default. Removed from every setting in this plugin; displayed defaults are unaffected.
+* Added automatic wpDiscuz compatibility: wpDiscuz builds its comment submissions from a fixed set of fields rather than serializing its form, so this plugin's checks can never see or verify them. When wpDiscuz is detected active, its comments are now silently exempted from verification instead of being rejected.
+* Fixed: comment verification now resolves the post ID from the value WordPress core has already parsed, instead of re-reading the raw `comment_post_ID` POST field — not every comment form sends it under that exact name.
 
 = 1.5 – August 30, 2026 =
 * Added **Login Guard Scope**: a new "wp-login.php only" option for the Login Guard, which stops guarding a front-end `wp_login_form()` usage (e.g. a custom login page, widget, or modal) entirely while keeping full protection on the native `wp-login.php` form. Intended for sites where that front-end form lives on a page a full-page cache might serve stale; uses the Referer header as a heuristic to tell the two forms apart (a disclosed trade-off, not a cryptographic guarantee). The default ("Everywhere") is unchanged and remains the strongest option.

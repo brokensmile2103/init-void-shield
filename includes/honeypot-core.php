@@ -101,8 +101,19 @@ function init_plugin_suite_void_shield_verify_submission( $commentdata ) {
 		return $commentdata;
 	}
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core comment form does not require a nonce; this is an anti-spam gate.
-	$post_id = isset( $_POST['comment_post_ID'] ) ? intval( $_POST['comment_post_ID'] ) : 0;
+	// Prefer the post ID WordPress core has already resolved into
+	// $commentdata. This is populated the same way regardless of which raw
+	// POST field name the calling form used -- some comment plugins (e.g.
+	// wpDiscuz, which submits via its own AJAX handler) never send a
+	// `comment_post_ID` field at all, so re-reading the raw request directly
+	// is not reliable. Fall back to the raw request only if a non-standard
+	// caller ever leaves $commentdata incomplete.
+	$post_id = isset( $commentdata['comment_post_ID'] ) ? absint( $commentdata['comment_post_ID'] ) : 0;
+
+	if ( ! $post_id ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core comment form does not require a nonce; this is an anti-spam gate.
+		$post_id = isset( $_POST['comment_post_ID'] ) ? intval( $_POST['comment_post_ID'] ) : 0;
+	}
 
 	if ( ! $post_id ) {
 		init_plugin_suite_void_shield_record_block( 'comment_unknown', 'invalid_post_id' );
