@@ -4,7 +4,7 @@
 
 **No CAPTCHA. No external JS. No database clutter. No user friction.**
 
-[![Version](https://img.shields.io/badge/stable-v1.6-blue.svg)](https://wordpress.org/plugins/init-void-shield/)
+[![Version](https://img.shields.io/badge/stable-v1.7-blue.svg)](https://wordpress.org/plugins/init-void-shield/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
