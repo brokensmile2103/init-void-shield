@@ -34,7 +34,7 @@ add_action(
  * @return string
  */
 function init_plugin_suite_void_shield_sanitize_checkbox( $value ) {
-	return isset( $value ) ? '1' : '0';
+	return ( isset( $value ) && '1' === $value ) ? '1' : '0';
 }
 
 // ------------------------------------------------------------------
@@ -51,7 +51,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enabled',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -60,7 +59,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_apply_to_logged_in',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -69,7 +67,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_block_rest',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -113,7 +110,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_login_guard',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -122,7 +118,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_login_guard_scope',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => function ( $v ) {
 					return in_array( $v, array( 'all', 'wp_login_only' ), true ) ? $v : 'all';
 				},
@@ -133,7 +128,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_register_guard',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -142,7 +136,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_lostpassword_guard',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -151,7 +144,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_multisite_signup',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -162,7 +154,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_cf7',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -171,7 +162,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_wpforms',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -180,7 +170,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_gravityforms',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -191,7 +180,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_woocommerce_register',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -200,7 +188,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_bbpress',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -209,7 +196,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_buddypress',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -220,7 +206,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_field_prefix',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_field_prefix',
 			)
 		);
@@ -229,7 +214,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_css_rotation',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -238,7 +222,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_headless_detection',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -247,7 +230,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_require_interaction',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -256,7 +238,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_lazy_fetch',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -267,7 +248,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_stats',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);
@@ -276,7 +256,6 @@ add_action(
 			$group,
 			'init_plugin_suite_void_shield_enable_dashboard_widget',
 			array(
-				'type'              => 'string',
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
 		);

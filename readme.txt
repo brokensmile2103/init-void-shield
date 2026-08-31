@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.6
+Stable tag: 1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -134,6 +134,9 @@ A short reference of the developer filters shipped with the plugin (all are stan
 * `init_plugin_suite_void_shield_{context}_blocked_message` — customize the rejection message for a given guard (e.g. `..._login_blocked_message`, `..._woocommerce_blocked_message`, `..._bbpress_blocked_message`).
 
 == Changelog ==
+
+= 1.7 – September 1, 2026 =
+* Fixed: the shared checkbox sanitizer treated any present value as enabled, causing every unchecked checkbox to be saved as `1` on the first save. Tightened to require an explicit `'1'` before treating a checkbox as on.
 
 = 1.6 – August 30, 2026 =
 * Fixed: a setting could get permanently stuck at its saved value and silently refuse to change on Save — most noticeable on "Enable Init Void Shield", since a fresh install starts already at its default of checked. Caused by `register_setting()`'s `default` argument, which triggers a WordPress core edge case in `update_option()` once a setting's value matches that default. Removed from every setting in this plugin; displayed defaults are unaffected.
