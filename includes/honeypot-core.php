@@ -120,6 +120,16 @@ function init_plugin_suite_void_shield_verify_submission( $commentdata ) {
 		init_plugin_suite_void_shield_kill_bot();
 	}
 
+	// Optional, opt-in: require the Referer header to point at this site.
+	// See init_plugin_suite_void_shield_is_referer_same_site() for the
+	// disclosed trade-off that keeps this off by default.
+	if ( '1' === get_option( 'init_plugin_suite_void_shield_require_referer', '0' )
+		&& ! apply_filters( 'init_plugin_suite_void_shield_referer_exempt', false )
+		&& ! init_plugin_suite_void_shield_is_referer_same_site() ) {
+		init_plugin_suite_void_shield_record_block( 'comment_' . $post_id, 'referer_mismatch' );
+		init_plugin_suite_void_shield_kill_bot();
+	}
+
 	if ( ! init_plugin_suite_void_shield_is_submission_human( 'comment_' . $post_id ) ) {
 		init_plugin_suite_void_shield_kill_bot();
 	}

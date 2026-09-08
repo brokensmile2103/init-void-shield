@@ -256,13 +256,9 @@ msgstr "Độ trễ Token JavaScript"
 msgid "milliseconds"
 msgstr "mili giây"
 
-#: includes/settings-page.php:537
-msgid ""
-"Delay before the hidden JS token is injected. Catches headless browsers that"
-" submit instantly."
-msgstr ""
-"Độ trễ trước khi token JS ẩn được bơm vào. Bắt các trình duyệt headless gửi "
-"ngay lập tức."
+#: includes/settings-page.php:512
+msgid "Delay before the hidden JS token is injected. Catches headless browsers that submit instantly. A small random amount of extra time is always added on top of this value so the exact wait cannot be read from the page source and timed around."
+msgstr "Độ trễ trước khi token JS ẩn được bơm vào. Bắt các trình duyệt headless gửi ngay lập tức. Một khoảng thời gian ngẫu nhiên nhỏ luôn được cộng thêm vào giá trị này, để bot không thể đọc được thời gian chờ chính xác từ mã nguồn trang và canh đúng thời điểm đó."
 
 #: includes/settings-page.php:545
 msgid "Maximum Token Age"
@@ -534,15 +530,9 @@ msgstr ""
 "Yêu cầu thêm ít nhất một thao tác thật (chuột, bàn phím, chạm hoặc cuộn "
 "trang) trước khi form được chấp nhận."
 
-#: includes/settings-page.php:838
-msgid ""
-"Catches bots that simply wait out the JavaScript Token Delay instead of "
-"interacting with the page. Off by default; works best with a JavaScript "
-"Token Delay of at least 1-2 seconds."
-msgstr ""
-"Bắt các bot chỉ đơn giản chờ hết thời gian trễ của Token JS thay vì thật sự "
-"tương tác với trang. Mặc định tắt; hoạt động tốt nhất khi Độ trễ Token "
-"JavaScript từ 1-2 giây trở lên."
+#: includes/settings-page.php:847
+msgid "Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. An interaction is only counted after a short minimum delay of its own, so a bot cannot satisfy this by firing one synthetic event the instant the page loads. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds."
+msgstr "Bắt các bot chỉ đơn giản chờ hết thời gian trễ của Token JS thay vì thật sự tương tác với trang. Một thao tác chỉ được tính sau khi trôi qua một khoảng trễ tối thiểu riêng, nên bot không thể qua mặt bằng cách bắn một sự kiện giả ngay khi trang vừa tải xong. Mặc định tắt; hoạt động tốt nhất khi Độ trễ Token JavaScript từ 1-2 giây trở lên."
 
 #: includes/settings-page.php:846
 msgid "Lazy Fetch (Cache-Safe Tokens)"
@@ -696,3 +686,35 @@ msgstr "Cài đặt"
 #~ "Lượt gửi mang theo token cũ hơn ngưỡng này sẽ bị từ chối, nhờ đó một token "
 #~ "không thể bị lấy trộm rồi dùng lại mãi mãi. Hãy tăng giá trị này nếu người "
 #~ "dùng trên site của bạn thường mất nhiều thời gian trước khi gửi form."
+
+#: includes/settings-page.php:356
+msgid "Known non-browser user agent"
+msgstr "User-Agent không phải trình duyệt đã biết"
+
+#: includes/settings-page.php:357
+msgid "Referer missing or not from this site"
+msgstr "Thiếu Referer hoặc không đến từ trang này"
+
+#: includes/settings-page.php:556
+msgid "Require Same-Site Referer"
+msgstr "Yêu cầu Referer cùng trang"
+
+#: includes/settings-page.php:562
+msgid "Reject a comment submission whose Referer header is missing or points to a different site."
+msgstr "Từ chối bình luận nếu thiếu header Referer hoặc header đó trỏ đến một trang khác."
+
+#: includes/settings-page.php:565
+msgid "Catches a scripted bot that posts directly to the comment endpoint without ever loading the page. Off by default: some privacy-focused browsers and extensions strip the Referer header even on a real, same-site submission, which this cannot tell apart from a bot. Enable only after confirming it does not affect real visitors on your site, and use it alongside the other layers, not instead of them."
+msgstr "Bắt các bot dạng script gửi thẳng đến endpoint bình luận mà không hề tải trang. Mặc định tắt: một số trình duyệt/tiện ích chú trọng quyền riêng tư có thể loại bỏ header Referer ngay cả khi bình luận là thật và cùng trang, nên lớp này không phân biệt được hai trường hợp đó. Chỉ bật sau khi đã xác nhận không ảnh hưởng đến khách thật trên site của bạn, và nên dùng kèm các lớp khác chứ không thay thế chúng."
+
+#: includes/settings-page.php:821
+msgid "Block Non-Browser User Agents"
+msgstr "Chặn User-Agent không phải trình duyệt"
+
+#: includes/settings-page.php:827
+msgid "Reject submissions whose User-Agent header identifies a known scripted HTTP client (curl, Python requests, Go, Scrapy, and similar)."
+msgstr "Từ chối các lượt gửi có header User-Agent xác định là một HTTP client dạng script đã biết (curl, Python requests, Go, Scrapy, và tương tự)."
+
+#: includes/settings-page.php:830
+msgid "A real browser running the JS layer always sends its own browser User-Agent, so a match here is a near-zero-false-positive signal. Catches a bot that never runs JavaScript at all and simply replays the static form fields, which the honeypot and JS checks alone cannot see. On by default; the list of signatures is filterable for developers."
+msgstr "Một trình duyệt thật khi chạy lớp JS luôn gửi đúng User-Agent của chính nó, nên nếu khớp ở đây thì gần như không có khả năng chặn nhầm. Bắt được loại bot hoàn toàn không chạy JavaScript mà chỉ gửi lại nguyên các trường tĩnh của form — thứ mà riêng honeypot và kiểm tra JS không thể nhận ra. Mặc định bật; danh sách dấu hiệu có thể tuỳ chỉnh qua filter cho lập trình viên."

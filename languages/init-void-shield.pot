@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Void Shield 1.6\n"
+"Project-Id-Version: Init Void Shield 1.8\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-void-shield\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-30T09:42:28+00:00\n"
+"POT-Creation-Date: 2026-09-08T09:00:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: init-void-shield\n"
@@ -244,10 +244,6 @@ msgstr ""
 msgid "milliseconds"
 msgstr ""
 
-#: includes/settings-page.php:513
-msgid "Delay before the hidden JS token is injected. Catches headless browsers that submit instantly."
-msgstr ""
-
 #: includes/settings-page.php:521
 msgid "Maximum Token Age"
 msgstr ""
@@ -432,10 +428,6 @@ msgstr ""
 msgid "Also require at least one real mouse, keyboard, touch, or scroll event before the form is accepted."
 msgstr ""
 
-#: includes/settings-page.php:814
-msgid "Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds."
-msgstr ""
-
 #: includes/settings-page.php:822
 msgid "Lazy Fetch (Cache-Safe Tokens)"
 msgstr ""
@@ -545,3 +537,44 @@ msgstr ""
 #: init-void-shield.php:58
 msgid "Settings"
 msgstr ""
+
+#: includes/settings-page.php:512
+msgid "Delay before the hidden JS token is injected. Catches headless browsers that submit instantly. A small random amount of extra time is always added on top of this value so the exact wait cannot be read from the page source and timed around."
+msgstr ""
+
+#: includes/settings-page.php:556
+msgid "Require Same-Site Referer"
+msgstr ""
+
+#: includes/settings-page.php:562
+msgid "Reject a comment submission whose Referer header is missing or points to a different site."
+msgstr ""
+
+#: includes/settings-page.php:565
+msgid "Catches a scripted bot that posts directly to the comment endpoint without ever loading the page. Off by default: some privacy-focused browsers and extensions strip the Referer header even on a real, same-site submission, which this cannot tell apart from a bot. Enable only after confirming it does not affect real visitors on your site, and use it alongside the other layers, not instead of them."
+msgstr ""
+
+#: includes/settings-page.php:821
+msgid "Block Non-Browser User Agents"
+msgstr ""
+
+#: includes/settings-page.php:827
+msgid "Reject submissions whose User-Agent header identifies a known scripted HTTP client (curl, Python requests, Go, Scrapy, and similar)."
+msgstr ""
+
+#: includes/settings-page.php:830
+msgid "A real browser running the JS layer always sends its own browser User-Agent, so a match here is a near-zero-false-positive signal. Catches a bot that never runs JavaScript at all and simply replays the static form fields, which the honeypot and JS checks alone cannot see. On by default; the list of signatures is filterable for developers."
+msgstr ""
+
+#: includes/settings-page.php:847
+msgid "Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. An interaction is only counted after a short minimum delay of its own, so a bot cannot satisfy this by firing one synthetic event the instant the page loads. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds."
+msgstr ""
+
+#: includes/settings-page.php:356
+msgid "Known non-browser user agent"
+msgstr ""
+
+#: includes/settings-page.php:357
+msgid "Referer missing or not from this site"
+msgstr ""
+

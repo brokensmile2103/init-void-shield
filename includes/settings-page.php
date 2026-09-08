@@ -73,6 +73,14 @@ add_action(
 
 		register_setting(
 			$group,
+			'init_plugin_suite_void_shield_require_referer',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
 			'init_plugin_suite_void_shield_min_time',
 			array(
 				'type'              => 'integer',
@@ -228,6 +236,14 @@ add_action(
 
 		register_setting(
 			$group,
+			'init_plugin_suite_void_shield_block_bot_user_agents',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
 			'init_plugin_suite_void_shield_require_interaction',
 			array(
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
@@ -337,6 +353,8 @@ function init_plugin_suite_void_shield_get_reason_labels() {
 		'token_expired'      => __( 'Time token expired', 'init-void-shield' ),
 		'too_fast'           => __( 'Submitted too fast', 'init-void-shield' ),
 		'no_user_agent'      => __( 'No user agent header', 'init-void-shield' ),
+		'bot_user_agent'     => __( 'Known non-browser user agent', 'init-void-shield' ),
+		'referer_mismatch'   => __( 'Referer missing or not from this site', 'init-void-shield' ),
 		'invalid_post_id'    => __( 'Invalid post ID', 'init-void-shield' ),
 		'rest_blocked'       => __( 'REST API endpoint blocked', 'init-void-shield' ),
 	);
@@ -373,6 +391,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$js_delay        = absint( get_option( 'init_plugin_suite_void_shield_js_delay', 1000 ) );
 	$max_time        = absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) );
 	$block_rest      = get_option( 'init_plugin_suite_void_shield_block_rest', '0' );
+	$require_referer = get_option( 'init_plugin_suite_void_shield_require_referer', '0' );
 
 	$enable_login            = get_option( 'init_plugin_suite_void_shield_enable_login_guard', '0' );
 	$login_guard_scope       = get_option( 'init_plugin_suite_void_shield_login_guard_scope', 'all' );
@@ -391,6 +410,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$field_prefix        = init_plugin_suite_void_shield_get_field_prefix();
 	$enable_css_rotation = get_option( 'init_plugin_suite_void_shield_enable_css_rotation', '1' );
 	$headless_detection  = get_option( 'init_plugin_suite_void_shield_headless_detection', '1' );
+	$block_bot_uas       = get_option( 'init_plugin_suite_void_shield_block_bot_user_agents', '1' );
 	$require_interaction = get_option( 'init_plugin_suite_void_shield_require_interaction', '0' );
 	$lazy_fetch          = get_option( 'init_plugin_suite_void_shield_lazy_fetch', '0' );
 
@@ -489,7 +509,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 								class="small-text">
 						<span class="description"><?php esc_html_e( 'milliseconds', 'init-void-shield' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Delay before the hidden JS token is injected. Catches headless browsers that submit instantly.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'Delay before the hidden JS token is injected. Catches headless browsers that submit instantly. A small random amount of extra time is always added on top of this value so the exact wait cannot be read from the page source and timed around.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -526,6 +546,23 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'The honeypot and JS token checks above only cover the classic comment form; REST API submissions bypass them entirely. Enable this only if your site does not rely on a headless app or other legitimate client that posts comments via the REST API.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_require_referer">
+							<?php esc_html_e( 'Require Same-Site Referer', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_require_referer" id="init_plugin_suite_void_shield_require_referer" value="1" <?php checked( $require_referer, '1' ); ?>>
+							<?php esc_html_e( 'Reject a comment submission whose Referer header is missing or points to a different site.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Catches a scripted bot that posts directly to the comment endpoint without ever loading the page. Off by default: some privacy-focused browsers and extensions strip the Referer header even on a real, same-site submission, which this cannot tell apart from a bot. Enable only after confirming it does not affect real visitors on your site, and use it alongside the other layers, not instead of them.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -780,6 +817,23 @@ function init_plugin_suite_void_shield_render_settings_page() {
 
 				<tr>
 					<th scope="row">
+						<label for="init_plugin_suite_void_shield_block_bot_user_agents">
+							<?php esc_html_e( 'Block Non-Browser User Agents', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_block_bot_user_agents" id="init_plugin_suite_void_shield_block_bot_user_agents" value="1" <?php checked( $block_bot_uas, '1' ); ?>>
+							<?php esc_html_e( 'Reject submissions whose User-Agent header identifies a known scripted HTTP client (curl, Python requests, Go, Scrapy, and similar).', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'A real browser running the JS layer always sends its own browser User-Agent, so a match here is a near-zero-false-positive signal. Catches a bot that never runs JavaScript at all and simply replays the static form fields, which the honeypot and JS checks alone cannot see. On by default; the list of signatures is filterable for developers.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
 						<label for="init_plugin_suite_void_shield_require_interaction">
 							<?php esc_html_e( 'Require Real User Interaction', 'init-void-shield' ); ?>
 						</label>
@@ -790,7 +844,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 							<?php esc_html_e( 'Also require at least one real mouse, keyboard, touch, or scroll event before the form is accepted.', 'init-void-shield' ); ?>
 						</label>
 						<p class="description">
-							<?php esc_html_e( 'Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'Catches bots that simply wait out the JavaScript Token Delay instead of interacting with the page. An interaction is only counted after a short minimum delay of its own, so a bot cannot satisfy this by firing one synthetic event the instant the page loads. Off by default; works best with a JavaScript Token Delay of at least 1-2 seconds.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>

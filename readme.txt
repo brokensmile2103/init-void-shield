@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.7
+Stable tag: 1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,8 +23,10 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 1. **Dynamic field names** — derived from context + site salt (plus an optional custom prefix) so bots cannot hardcode field names.
 2. **CSS-clipped honeypots** — a text field and a checkbox hidden with rotating CSS techniques (never `display:none` or `visibility:hidden`, the two patterns CSS-aware bots specifically look for and skip) that bots fill but humans never see.
 3. **Signed time tokens** — each form carries a timestamp + HMAC hash verified server-side with `hash_equals()` to prevent timing attacks. Submissions under the minimum threshold are rejected.
-4. **JavaScript + headless-browser verification** — a hidden token is injected after a configurable delay, and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window) picked up from real Selenium/Puppeteer/Playwright sessions. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't.
-5. **Block REST API Comments** *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover since those requests never carry the honeypot fields or tokens.
+4. **JavaScript + headless-browser verification** — a hidden token is injected after a configurable delay (plus a small random jitter, so the exact wait can't be read from the page source and timed around), and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window) picked up from real Selenium/Puppeteer/Playwright sessions. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't.
+5. **Non-browser User-Agent detection** — rejects submissions whose User-Agent identifies a scripted HTTP client (curl, Python requests, Go, Scrapy, and similar) rather than a real browser, catching bots that skip JavaScript entirely and simply replay the static form fields. On by default; the signature list is filterable.
+6. **Block REST API Comments** *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover since those requests never carry the honeypot fields or tokens.
+7. **Require Same-Site Referer** *(optional)* — rejects a comment submission whose Referer header is missing or points elsewhere, catching bots that post directly to the comment endpoint. Off by default and disclosed as a trade-off, since some privacy-focused browsers strip Referer even on genuine same-site submissions.
 
 **Recent updates (1.4–1.6):**
 
@@ -103,7 +105,13 @@ When enabled, a small same-origin JavaScript request (no jQuery, no external ser
 Versions before 1.4 had a bug where these two settings were saved correctly but never actually read back during verification, so the plugin always silently enforced the defaults (3 seconds / 1000ms) no matter what was configured. 1.4 fixes this, so a custom value you set earlier may now be enforced for the first time. This is a bug fix, not a new restriction — just double-check both values on the settings page after updating.
 
 = What does "Require Real User Interaction" do? =
-When enabled, a submission is only accepted if the browser recorded at least one real mouse, keyboard, touch, or scroll event before the JS token fires. It targets bots that wait out the JavaScript Token Delay instead of a real page visit. It's off by default and works best paired with a JS delay of at least 1-2 seconds.
+When enabled, a submission is only accepted if the browser recorded at least one real mouse, keyboard, touch, or scroll event before the JS token fires — and that event only counts once a short minimum delay of its own has passed, so a bot can't satisfy it by firing one synthetic event the instant the page loads. It targets bots that wait out the JavaScript Token Delay instead of a real page visit. It's off by default and works best paired with a JS delay of at least 1-2 seconds.
+
+= What does "Block Non-Browser User Agents" do, and is it safe to leave on? =
+It rejects any submission whose User-Agent header identifies a scripted HTTP client — curl, Python's requests library, Go's default client, Scrapy, PostmanRuntime, and similar — rather than a real browser. It's on by default and is one of the safest checks in the plugin: every real browser, including all the major ones and their mobile variants, sends its own distinct browser User-Agent, never one of these library defaults. It specifically catches a bot that never runs JavaScript at all — one that parses the static HTML, avoids the honeypot fields, and replays the baked-in time/hash token — which the honeypot and JS layers can't see on their own. If you run your own legitimate script against your comment form (e.g. an internal test tool), either give it a normal browser User-Agent or use the `init_plugin_suite_void_shield_skip_verification` filter for that request.
+
+= What does "Require Same-Site Referer" do? =
+When enabled, a comment submission is rejected if its Referer header is missing or points to a domain other than your own — this catches a bot that posts directly to the comment endpoint without ever actually loading the page. It's off by default and disclosed as a trade-off, same as Login Guard Scope's Referer heuristic: some privacy-focused browsers and extensions strip the Referer header even on a genuine same-site submission, and this check cannot tell that apart from a bot. Only enable it after confirming it doesn't affect real commenters on your site, and treat it as one more layer on top of the others rather than a replacement for them. A `init_plugin_suite_void_shield_referer_exempt` filter is available if you need to exempt specific requests (e.g. a proxy or caching setup that legitimately strips Referer).
 
 = Can I change the honeypot field names? =
 Yes. Set a **Custom Field Prefix** under Advanced Protection. Field names are still dynamically derived per context and site salt on top of that prefix.
@@ -116,6 +124,9 @@ Only aggregate counters (a total, a breakdown by channel, a breakdown by block r
 
 = Is the Dashboard widget on by default? =
 No. Enable **Show Dashboard Widget** under Statistics. It's only visible to users who can manage options, and only shows the same aggregate counters as the settings page (no per-submission data).
+
+= I see a JavaScript syntax error in the browser console near "lazyFetchEnabled", and every comment gets rejected — what's happening? =
+This was a bug fixed in 1.8: some environments (an HTML minifier, a multilingual plugin, a security/output-filtering plugin, or WordPress's own `convert_chars()`) rewrite a bare `&` in page output into `&#038;`, which is safe for ordinary HTML text but breaks the literal JavaScript inside a `<script>` tag, since browsers never decode entities there. If you're on 1.8 or later and still see this, please report it along with your active plugins/theme so the specific source can be identified.
 
 = Can developers customize the behavior? =
 Yes. See the **Filters** section below for the full list, or the documentation on GitHub for more detail.
@@ -132,8 +143,21 @@ A short reference of the developer filters shipped with the plugin (all are stan
 * `init_plugin_suite_void_shield_min_time` / `_max_time` / `_js_delay` — override the Minimum Submit Time, Maximum Token Age, and JS Token Delay thresholds.
 * `init_plugin_suite_void_shield_hidden_style_variants` — customize the pool of CSS techniques used to hide honeypot fields.
 * `init_plugin_suite_void_shield_{context}_blocked_message` — customize the rejection message for a given guard (e.g. `..._login_blocked_message`, `..._woocommerce_blocked_message`, `..._bbpress_blocked_message`).
+* `init_plugin_suite_void_shield_blocked_user_agent_signatures` — customize the list of non-browser User-Agent substrings checked by Block Non-Browser User Agents.
+* `init_plugin_suite_void_shield_js_delay_jitter_max` — override the maximum random jitter (milliseconds) added on top of the JavaScript Token Delay.
+* `init_plugin_suite_void_shield_min_interaction_delay` — override the minimum time (milliseconds) that must pass before a Require Real User Interaction event is accepted.
+* `init_plugin_suite_void_shield_referer_exempt` — force-exempt a request from the Require Same-Site Referer check regardless of its settings-page toggle.
 
 == Changelog ==
+
+= 1.8 – September 8, 2026 =
+* Fixed: a bare '&' inside the honeypot script could get HTML-entity-encoded by some environments (an HTML minifier, a multilingual plugin, a security/output-filtering plugin, or WordPress's own `convert_chars()`), turning `&&` into the literal text `&#038;&#038;` on the page. Browsers never decode entities inside `<script>` content, so this broke JS parsing entirely and silently rejected every submission. The script no longer emits any bare `&` character.
+* Fixed: a genuine first-time visitor's comment could be wrongly rejected as unverified (succeeding only on a retry) on sites using a "delay JavaScript execution" optimization, since the script only listened for `DOMContentLoaded`, which had already fired by the time such a delayed script ran. It now checks `document.readyState` and runs immediately if the document is already past the loading state.
+* Added **Non-Browser User-Agent detection** (on by default): rejects submissions whose User-Agent identifies a scripted HTTP client (curl, Python requests, Go, Scrapy, and similar) rather than a real browser. Signature list is filterable via `init_plugin_suite_void_shield_blocked_user_agent_signatures`.
+* Added **JavaScript Token Delay jitter**: a small random amount of extra time (up to 400ms, filterable) is now added on top of the configured delay so it can't be read from the page source and timed around.
+* Strengthened **Require Real User Interaction**: an interaction event now only counts once a short minimum delay has passed since script init, closing a gap where a bot could satisfy the check with one synthetic event at page load.
+* Added **Require Same-Site Referer** for comments (opt-in, off by default): rejects a submission whose Referer header is missing or points to a different site. Disclosed trade-off, same spirit as Login Guard Scope — some privacy-focused browsers strip Referer even on genuine submissions.
+* Removed all comments from the inline honeypot script rendered on every guarded form, since it prints to public page source on every load. Rationale now lives only in the plugin's PHP source. Cuts the script's rendered size by roughly a third.
 
 = 1.7 – September 1, 2026 =
 * Fixed: the shared checkbox sanitizer treated any present value as enabled, causing every unchecked checkbox to be saved as `1` on the first save. Tightened to require an explicit `'1'` before treating a checkbox as on.

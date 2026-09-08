@@ -123,6 +123,68 @@ function init_plugin_suite_void_shield_get_hidden_style() {
 }
 
 // ------------------------------------------------------------------
+// 3b. Non-browser User-Agent signatures
+// ------------------------------------------------------------------
+
+/**
+ * Get the list of User-Agent substrings associated with common scripted
+ * HTTP clients (as opposed to real browsers). A real browser executing the
+ * JS layer always sends its own browser UA string; these signatures only
+ * ever appear on requests built by a script or library, so matching one is
+ * a near-zero-false-positive signal that no human loaded the page. This
+ * catches the class of bot that never runs JS at all -- e.g. a script that
+ * parses the static HTML, skips the honeypot fields, and replays the
+ * baked-in time/hash token -- which the honeypot and JS layers alone
+ * cannot see, since both are things a careful non-JS script can copy.
+ *
+ * @return array
+ */
+function init_plugin_suite_void_shield_get_blocked_user_agent_signatures() {
+	$signatures = array(
+		'curl',
+		'wget',
+		'python-requests',
+		'python-urllib',
+		'go-http-client',
+		'okhttp',
+		'apache-httpclient',
+		'libwww-perl',
+		'scrapy',
+		'postmanruntime',
+		'node-fetch',
+		'guzzlehttp',
+		'java/',
+		'httpclient',
+	);
+
+	return apply_filters( 'init_plugin_suite_void_shield_blocked_user_agent_signatures', $signatures );
+}
+
+/**
+ * Check whether a User-Agent string matches a known non-browser signature.
+ *
+ * @param string $user_agent Raw User-Agent header value.
+ * @return bool
+ */
+function init_plugin_suite_void_shield_is_bot_user_agent( $user_agent ) {
+	$user_agent = strtolower( (string) $user_agent );
+
+	if ( '' === $user_agent ) {
+		return false;
+	}
+
+	foreach ( init_plugin_suite_void_shield_get_blocked_user_agent_signatures() as $signature ) {
+		$signature = strtolower( (string) $signature );
+
+		if ( '' !== $signature && false !== strpos( $user_agent, $signature ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// ------------------------------------------------------------------
 // 4. Time token signing
 // ------------------------------------------------------------------
 
@@ -169,6 +231,21 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 
 	// Read the saved setting first; the filter still allows a per-request developer override on top of it.
 	$js_delay = absint( apply_filters( 'init_plugin_suite_void_shield_js_delay', absint( get_option( 'init_plugin_suite_void_shield_js_delay', 1000 ) ) ) );
+
+	// A small random jitter added on top of the configured delay, so the
+	// exact wait a bot needs to sleep through cannot be read from the page
+	// source and precomputed. Purely additive -- the effective delay is
+	// never shorter than the configured value, so this cannot create a new
+	// false-positive path for a genuine visitor, only a slightly longer one.
+	$js_delay_jitter_max = absint( apply_filters( 'init_plugin_suite_void_shield_js_delay_jitter_max', 400 ) );
+	$js_delay_actual     = $js_delay + ( $js_delay_jitter_max > 0 ? wp_rand( 0, $js_delay_jitter_max ) : 0 );
+
+	// Minimum time, from script init, that must pass before a genuine
+	// interaction event is allowed to count. Without this, a bot could
+	// satisfy "Require Real User Interaction" by dispatching a single
+	// synthetic event the instant the script runs, defeating the point of
+	// the check. Only relevant when that setting is enabled.
+	$min_interaction_delay = absint( apply_filters( 'init_plugin_suite_void_shield_min_interaction_delay', 150 ) );
 
 	// Trap 1: text field.
 	$text_trap  = '<label for="' . esc_attr( $hp_text ) . '">' . esc_html__( 'If you are human, please leave this field blank.', 'init-void-shield' ) . '</label>';
@@ -221,60 +298,116 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	// cache age. If the request fails (or JS/fetch is unavailable), the
 	// baked-in value is left untouched as a fallback, so this only ever
 	// helps and never introduces a new failure mode.
-	$js = "document.addEventListener('DOMContentLoaded', function() {
-		var jsInput = document.getElementById('" . esc_js( $js_name ) . "');
-		if (!jsInput) {
-			return;
-		}
-		var headlessCheckEnabled = " . $headless_enabled . ';
-		var interactionRequired = ' . $interaction_required . ';
-		var lazyFetchEnabled = ' . $lazy_fetch_enabled . ";
-		var interacted = false;
-		if (interactionRequired) {
-			var markInteracted = function() { interacted = true; };
-			['mousemove', 'keydown', 'pointerdown', 'touchstart', 'scroll'].forEach(function(evt) {
-				document.addEventListener(evt, markInteracted, { passive: true, once: true });
-			});
-		}
-		if (lazyFetchEnabled && window.fetch) {
-			var timeInput = document.getElementById('" . esc_js( $time_name ) . "');
-			var hashInput = document.getElementById('" . esc_js( $hash_name ) . "');
-			if (timeInput && hashInput) {
-				var base = '" . esc_js( $rest_base_url ) . "';
-				var sep = base.indexOf('?') > -1 ? '&' : '?';
-				var url = base + sep + 'context=' + encodeURIComponent('" . esc_js( $context ) . "');
-				fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store' })
-					.then(function(response) { return response.ok ? response.json() : null; })
-					.then(function(data) {
-						if (data && data.time && data.hash) {
-							timeInput.value = data.time;
-							hashInput.value = data.hash;
-						}
-					})
-					.catch(function() {
-						// Network or endpoint failure: silently keep the baked-in fallback token.
+	//
+	// The init routine below checks document.readyState instead of relying
+	// solely on a 'DOMContentLoaded' listener. Several JS-delay/defer
+	// optimizations (present in most caching/performance plugins) postpone
+	// running inline scripts like this one until the visitor's first
+	// interaction with the page -- which, on a comment form, is often the
+	// click on the submit button itself. By the time such a deferred script
+	// actually executes, 'DOMContentLoaded' has already fired, so a listener
+	// registered for it at that point never runs, the token silently never
+	// gets set, and a genuine first-time visitor's submission is rejected as
+	// unverified -- succeeding only on a retry once the script has caught up
+	// in the background. Running immediately when the document is already
+	// past the loading state closes that gap without weakening any check.
+	//
+	// The script below also never emits a bare '&' character (nested ifs
+	// instead of '&&', String.fromCharCode(38) instead of a literal '&' in
+	// a URL separator). Some environments -- an HTML minifier, a
+	// multilingual plugin's string scanner, a security/output-filtering
+	// plugin, or WordPress's own convert_chars() if this markup is ever
+	// routed through it -- normalize a bare ampersand in page output into
+	// '&#038;'. Browsers never decode HTML entities inside <script>
+	// content (it's raw text, not markup), so a literal '&&' would become
+	// the literal text '&#038;&#038;' on the page and break JS parsing
+	// entirely. Comments are also kept out of the emitted script below,
+	// both to keep guarded pages lean (this renders on every comment form,
+	// login form, etc.) and to avoid spelling out the detection logic in
+	// page source for anyone reading it.
+	$js = "(function() {
+		function initVoidShieldGuard() {
+			var jsInput = document.getElementById('" . esc_js( $js_name ) . "');
+			if (!jsInput) {
+				return;
+			}
+			var headlessCheckEnabled = " . $headless_enabled . ';
+			var interactionRequired = ' . $interaction_required . ';
+			var lazyFetchEnabled = ' . $lazy_fetch_enabled . ';
+			var minInteractionDelay = ' . $min_interaction_delay . ";
+			var initAt = Date.now();
+			var interacted = false;
+			if (interactionRequired) {
+				var voidShieldInteractionEvents = ['mousemove', 'keydown', 'pointerdown', 'touchstart', 'scroll'];
+				var markInteracted = function() {
+					if (interacted) {
+						return;
+					}
+					if (Date.now() - initAt < minInteractionDelay) {
+						return;
+					}
+					interacted = true;
+					voidShieldInteractionEvents.forEach(function(evt) {
+						document.removeEventListener(evt, markInteracted);
 					});
+				};
+				voidShieldInteractionEvents.forEach(function(evt) {
+					document.addEventListener(evt, markInteracted, { passive: true });
+				});
 			}
+			if (lazyFetchEnabled) {
+				if (window.fetch) {
+					var timeInput = document.getElementById('" . esc_js( $time_name ) . "');
+					var hashInput = document.getElementById('" . esc_js( $hash_name ) . "');
+					if (timeInput) {
+						if (hashInput) {
+							var base = '" . esc_js( $rest_base_url ) . "';
+							var sep = base.indexOf('?') > -1 ? String.fromCharCode(38) : '?';
+							var url = base + sep + 'context=' + encodeURIComponent('" . esc_js( $context ) . "');
+							fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store' })
+								.then(function(response) { return response.ok ? response.json() : null; })
+								.then(function(data) {
+									if (data) {
+										if (data.time) {
+											if (data.hash) {
+												timeInput.value = data.time;
+												hashInput.value = data.hash;
+											}
+										}
+									}
+								})
+								.catch(function() {});
+						}
+					}
+				}
+			}
+			setTimeout(function() {
+				var isBot = false;
+				if (headlessCheckEnabled) {
+					if (navigator.webdriver === true) {
+						isBot = true;
+					}
+					if (window.outerWidth === 0) {
+						if (window.outerHeight === 0) {
+							isBot = true;
+						}
+					}
+				}
+				if (isBot) {
+					jsInput.value = 'bot_detected';
+				} else if (interactionRequired) {
+					jsInput.value = interacted ? 'human_verified' : 'no_interaction';
+				} else {
+					jsInput.value = 'human_verified';
+				}
+			}, " . absint( $js_delay_actual ) . ');
 		}
-		setTimeout(function() {
-			var isBot = false;
-			if (headlessCheckEnabled) {
-				if (navigator.webdriver === true) {
-					isBot = true;
-				}
-				if (window.outerWidth === 0 && window.outerHeight === 0) {
-					isBot = true;
-				}
-			}
-			if (isBot) {
-				jsInput.value = 'bot_detected';
-			} else if (interactionRequired && !interacted) {
-				jsInput.value = 'no_interaction';
-			} else {
-				jsInput.value = 'human_verified';
-			}
-		}, " . absint( $js_delay ) . ');
-	});';
+		if (document.readyState === "loading") {
+			document.addEventListener("DOMContentLoaded", initVoidShieldGuard);
+		} else {
+			initVoidShieldGuard();
+		}
+	})();';
 
 	// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline script tag, not an enqueued asset.
 	$script = wp_get_inline_script_tag(
@@ -286,6 +419,40 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	);
 
 	return $html . $script;
+}
+
+// ------------------------------------------------------------------
+// 5b. Referer check (opt-in, used by individual guards)
+// ------------------------------------------------------------------
+
+/**
+ * Check whether the current request's Referer header points to this site.
+ *
+ * Disclosed trade-off, same spirit as the Login Guard Scope's Referer
+ * heuristic further up the plugin: some privacy-focused browsers and
+ * extensions strip the Referer header even on same-origin navigation,
+ * which would make a genuine visitor look like a mismatch. This is why
+ * every guard that uses this check keeps it opt-in and off by default --
+ * enable it only after confirming it doesn't affect real visitors on your
+ * site, and prefer it as an addition on top of the other layers, not a
+ * replacement for them.
+ *
+ * @return bool
+ */
+function init_plugin_suite_void_shield_is_referer_same_site() {
+	if ( empty( $_SERVER['HTTP_REFERER'] ) ) {
+		return false;
+	}
+
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+	$referer_host = wp_parse_url( sanitize_text_field( wp_unslash( $_SERVER['HTTP_REFERER'] ) ), PHP_URL_HOST );
+	$site_host    = wp_parse_url( home_url(), PHP_URL_HOST );
+
+	if ( empty( $referer_host ) || empty( $site_host ) ) {
+		return false;
+	}
+
+	return strtolower( $referer_host ) === strtolower( $site_host );
 }
 
 // ------------------------------------------------------------------
@@ -305,6 +472,16 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 	if ( empty( $_SERVER['HTTP_USER_AGENT'] ) ) {
 		init_plugin_suite_void_shield_record_block( $context, 'no_user_agent' );
 		return false;
+	}
+
+	if ( '1' === get_option( 'init_plugin_suite_void_shield_block_bot_user_agents', '1' ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+		$user_agent = sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) );
+
+		if ( init_plugin_suite_void_shield_is_bot_user_agent( $user_agent ) ) {
+			init_plugin_suite_void_shield_record_block( $context, 'bot_user_agent' );
+			return false;
+		}
 	}
 
 	$hp_text   = init_plugin_suite_void_shield_get_field_name( $context, 'text' );
