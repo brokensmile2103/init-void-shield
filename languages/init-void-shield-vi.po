@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Init Void Shield 1.5\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-void-shield\n"
 "POT-Creation-Date: 2026-08-30T04:44:38+00:00\n"
-"PO-Revision-Date: 2026-08-30 15:00+07:00\n"
+"PO-Revision-Date: 2026-09-10 15:00+07:00\n"
 "Last-Translator: Init HTML <hi@inithtml.com>\n"
 "Language-Team: Vietnamese\n"
 "Language: vi\n"
@@ -232,23 +232,51 @@ msgstr ""
 " tùy chọn này nếu site của bạn cho đăng ký công khai hoặc có thành viên "
 "không đáng tin."
 
-#: includes/settings-page.php:507
+#: includes/settings-page.php:494
 msgid "Minimum Submit Time"
 msgstr "Thời gian gửi tối thiểu"
 
-#: includes/settings-page.php:516 includes/settings-page.php:554
+#: includes/settings-page.php:503 includes/settings-page.php:522 includes/settings-page.php:560
 msgid "seconds"
 msgstr "giây"
 
-#: includes/settings-page.php:518
+#: includes/settings-page.php:505
 msgid ""
-"Comments submitted faster than this will be rejected. Humans need time to "
-"read and type."
+"Comments and other content-style forms (topics, replies, contact forms) "
+"submitted faster than this will be rejected. Humans need time to read and "
+"type. Login, registration, and other account forms use the separate "
+"setting below instead."
 msgstr ""
-"Bình luận gửi nhanh hơn ngưỡng này sẽ bị từ chối. Con người cần thời gian để"
-" đọc và gõ."
+"Bình luận và các form nội dung khác (chủ đề, trả lời, form liên hệ) gửi "
+"nhanh hơn ngưỡng này sẽ bị từ chối. Con người cần thời gian để đọc và gõ. "
+"Form đăng nhập, đăng ký và các form tài khoản khác dùng thiết lập riêng bên "
+"dưới."
 
-#: includes/settings-page.php:526
+#: includes/settings-page.php:513
+msgid "Account Forms Minimum Submit Time"
+msgstr "Thời gian gửi tối thiểu cho form tài khoản"
+
+#: includes/settings-page.php:524
+msgid ""
+"Separate, shorter floor used by the Login, Registration, Lost Password, "
+"Multisite Signup, WooCommerce registration, and BuddyPress registration "
+"guards instead of the general Minimum Submit Time above. A browser "
+"autofilling a saved username and password lets a genuine visitor submit "
+"far faster than someone typing a comment from scratch, so these forms need "
+"a lower bar. Set to 0 to disable this specific check for account forms "
+"while keeping every other layer (honeypot fields, JS/headless detection, "
+"signed time token) fully active."
+msgstr ""
+"Ngưỡng riêng, ngắn hơn, dùng cho các lớp bảo vệ Đăng nhập, Đăng ký, Quên "
+"mật khẩu, Đăng ký Multisite, đăng ký WooCommerce và đăng ký BuddyPress, "
+"thay vì dùng chung Thời gian gửi tối thiểu ở trên. Khi trình duyệt tự điền "
+"sẵn tên đăng nhập và mật khẩu đã lưu, người dùng thật có thể gửi form nhanh "
+"hơn nhiều so với việc tự gõ một bình luận từ đầu, nên các form này cần một "
+"ngưỡng thấp hơn. Đặt về 0 để tắt riêng kiểm tra này cho form tài khoản, "
+"trong khi mọi lớp bảo vệ khác (trường bẫy honeypot, phát hiện JS/trình "
+"duyệt headless, mã thời gian đã ký) vẫn hoạt động đầy đủ."
+
+#: includes/settings-page.php:532
 msgid "JavaScript Token Delay"
 msgstr "Độ trễ Token JavaScript"
 

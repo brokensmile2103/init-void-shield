@@ -247,9 +247,32 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	// the check. Only relevant when that setting is enabled.
 	$min_interaction_delay = absint( apply_filters( 'init_plugin_suite_void_shield_min_interaction_delay', 150 ) );
 
-	// Trap 1: text field.
+	// Trap 1: text field. `readonly` is the key attribute here: every major
+	// browser autofill engine and third-party password manager (Chrome,
+	// Firefox, Safari, Edge, LastPass, 1Password, Bitwarden, ...) explicitly
+	// skips readonly (and disabled) fields when deciding what to fill in --
+	// it is not merely a convention, it is how those engines are built. This
+	// field's CSS hiding (see init_plugin_suite_void_shield_get_hidden_style())
+	// deliberately avoids display:none/visibility:hidden so CSS-aware bots
+	// can't detect and skip it, but that same choice makes it fully "visible"
+	// to autofill heuristics, which do not care about CSS at all -- only
+	// about the field's own attributes. On a login form especially, that
+	// visibility previously meant a browser autofilling saved credentials
+	// into the real username field could also drop a value into this one,
+	// since both live in the same <form>, tripping Gate 1 below and blocking
+	// a genuine visitor who never touched the trap themselves. `readonly`
+	// closes that gap without narrowing bot coverage: it blocks native
+	// browser/password-manager writes, but does nothing to stop a scripted
+	// HTTP client from posting the field name with junk data (readonly is a
+	// rendering-layer restriction, irrelevant to a raw POST body), and does
+	// nothing to stop a JS-driven headless browser from setting `.value`
+	// directly (readonly only blocks *keyboard* entry, not scripted
+	// assignment) -- both bot classes still land in the trap exactly as
+	// before. `autocomplete="off"` is left in place as a second, weaker
+	// layer, since some browsers honor it for non-login-adjacent forms even
+	// though Chrome/Firefox largely ignore it around login fields.
 	$text_trap  = '<label for="' . esc_attr( $hp_text ) . '">' . esc_html__( 'If you are human, please leave this field blank.', 'init-void-shield' ) . '</label>';
-	$text_trap .= '<input type="text" name="' . esc_attr( $hp_text ) . '" id="' . esc_attr( $hp_text ) . '" value="" tabindex="-1" autocomplete="off" />';
+	$text_trap .= '<input type="text" name="' . esc_attr( $hp_text ) . '" id="' . esc_attr( $hp_text ) . '" value="" tabindex="-1" autocomplete="off" readonly="readonly" />';
 
 	// Trap 2: checkbox.
 	$check_trap = '<label><input type="checkbox" name="' . esc_attr( $hp_check ) . '" value="1" tabindex="-1" /> ' . esc_html__( 'Do not check this box.', 'init-void-shield' ) . '</label>';
@@ -287,6 +310,32 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	// mouse, keyboard, touch, or scroll event (any of which a real visitor
 	// naturally triggers while reading/filling the page) before the timer
 	// fires, without recording anything about that event.
+	//
+	// The interaction verdict is finalized twice, not once. Originally the
+	// hidden token's value was only ever written inside the delayed
+	// setTimeout below: if no qualifying event had happened by the time it
+	// fired, the field was permanently stamped 'no_interaction', even if the
+	// visitor's very next action -- the click that submits the form -- would
+	// itself have satisfied the check an instant later. This is exactly what
+	// happens on a login form the browser has already autofilled: a real
+	// visitor does nothing else on the page (no mouse movement, no typing,
+	// nothing to scroll to) until they click "Log in", so if that click
+	// lands even slightly after the delay has already elapsed and stamped
+	// the field, a genuine visitor was permanently misjudged as a bot with
+	// no way to correct it. The fix re-runs the same verdict once more, at
+	// the moment the form actually submits, but ONLY ever upgrades an
+	// already-stamped 'no_interaction' to 'human_verified' -- and only if a
+	// qualifying interaction event (the very click that triggered this
+	// submission counts, since `markInteracted` for 'pointerdown'/'keydown'
+	// runs synchronously before the browser's own 'submit' event fires) has
+	// now genuinely happened. A bot with zero interaction events is
+	// completely unaffected: `interacted` is still false at submit time, so
+	// the value is left exactly as the timer already set it. This
+	// resubmission hook is only attached when "Require Real User
+	// Interaction" is enabled in the first place -- when it's off (the
+	// default), nothing here changes, and the delay continues to enforce
+	// its original minimum-wait-before-a-valid-token-exists behavior with
+	// no new way for a script to submit before that delay elapses.
 	//
 	// Optional lazy-fetch layer: the time/hash pair rendered into the page
 	// above reflects the moment this PHP ran, which on a full-page-cached
@@ -401,6 +450,17 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 					jsInput.value = 'human_verified';
 				}
 			}, " . absint( $js_delay_actual ) . ');
+			if (interactionRequired) {
+				if (jsInput.form) {
+					jsInput.form.addEventListener("submit", function() {
+						if (interacted) {
+							if (jsInput.value === "no_interaction") {
+								jsInput.value = "human_verified";
+							}
+						}
+					});
+				}
+			}
 		}
 		if (document.readyState === "loading") {
 			document.addEventListener("DOMContentLoaded", initVoidShieldGuard);
@@ -453,6 +513,74 @@ function init_plugin_suite_void_shield_is_referer_same_site() {
 	}
 
 	return strtolower( $referer_host ) === strtolower( $site_host );
+}
+
+// ------------------------------------------------------------------
+// 5c. Per-context Minimum Submit Time (account forms vs. content forms)
+// ------------------------------------------------------------------
+
+/**
+ * Determine whether a guard context is a login/account-credentials style
+ * form -- login, registration, lost password, and equivalents from the
+ * form-plugin integrations -- as opposed to a content-submission form (a
+ * comment, a forum topic/reply, a contact form). Account forms are the ones
+ * a browser's autofill/password manager most commonly pre-fills, letting a
+ * genuine visitor submit meaningfully faster than someone typing content
+ * from scratch, so they get their own, separately-tunable minimum-submit-
+ * time floor instead of sharing the one general setting.
+ *
+ * @param string $context Guard context.
+ * @return bool
+ */
+function init_plugin_suite_void_shield_is_account_context( $context ) {
+	$account_contexts = array(
+		'login',
+		'register',
+		'lostpassword',
+		'multisite_signup',
+		'woocommerce_register',
+		'buddypress_register',
+	);
+
+	/**
+	 * Filter which guard contexts are treated as "account forms" for the
+	 * purpose of the separate Account Forms Minimum Submit Time setting.
+	 * Comment forms and the content-style form-plugin integrations (CF7,
+	 * WPForms, Gravity Forms, bbPress topics/replies) are intentionally
+	 * left out of the default list and continue using the general
+	 * Minimum Submit Time -- add a context here only if it is itself a
+	 * credentials/account form a browser would realistically autofill.
+	 *
+	 * @param array  $account_contexts Contexts treated as account forms.
+	 * @param string $context          The context currently being checked.
+	 */
+	$account_contexts = apply_filters( 'init_plugin_suite_void_shield_account_contexts', $account_contexts, $context );
+
+	return in_array( (string) $context, (array) $account_contexts, true );
+}
+
+/**
+ * Resolve the effective Minimum Submit Time (in seconds) for a given guard
+ * context. Account-style contexts (see
+ * init_plugin_suite_void_shield_is_account_context()) use their own,
+ * independently-configured setting; everything else keeps using the
+ * general one. Both paths remain filterable via the same
+ * `init_plugin_suite_void_shield_min_time` filter as before, now with the
+ * context passed through as a second argument so a developer can override
+ * any single form individually if the grouped setting isn't granular
+ * enough.
+ *
+ * @param string $context Guard context.
+ * @return int
+ */
+function init_plugin_suite_void_shield_get_min_time_for_context( $context ) {
+	if ( init_plugin_suite_void_shield_is_account_context( $context ) ) {
+		$min_time = absint( get_option( 'init_plugin_suite_void_shield_account_min_time', 1 ) );
+	} else {
+		$min_time = absint( get_option( 'init_plugin_suite_void_shield_min_time', 3 ) );
+	}
+
+	return absint( apply_filters( 'init_plugin_suite_void_shield_min_time', $min_time, $context ) );
 }
 
 // ------------------------------------------------------------------
@@ -539,9 +667,14 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 	// ceiling exists so a token scraped once cannot be cached and replayed
 	// indefinitely; it only has to be generous enough that a real visitor
 	// who takes a while to read the page and fill the form is never caught
-	// by it.
-	$min_time = absint( apply_filters( 'init_plugin_suite_void_shield_min_time', absint( get_option( 'init_plugin_suite_void_shield_min_time', 3 ) ) ) );
-	$max_time = absint( apply_filters( 'init_plugin_suite_void_shield_max_time', absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) ) ) );
+	// by it. The floor is resolved per-context: login/account-style forms
+	// (see init_plugin_suite_void_shield_get_min_time_for_context()) use
+	// their own, shorter setting by default, since a browser autofilling
+	// saved credentials lets a genuine visitor submit faster than the
+	// general minimum -- tuned for typing a comment or filling out a
+	// contact form -- assumes.
+	$min_time = init_plugin_suite_void_shield_get_min_time_for_context( $context );
+	$max_time = absint( apply_filters( 'init_plugin_suite_void_shield_max_time', absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) ), $context ) );
 
 	$time_diff = time() - $submit_time;
 

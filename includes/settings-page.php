@@ -92,6 +92,17 @@ add_action(
 
 		register_setting(
 			$group,
+			'init_plugin_suite_void_shield_account_min_time',
+			array(
+				'type'              => 'integer',
+				'sanitize_callback' => function ( $v ) {
+					return max( 0, min( 60, absint( $v ) ) );
+				},
+			)
+		);
+
+		register_setting(
+			$group,
 			'init_plugin_suite_void_shield_js_delay',
 			array(
 				'type'              => 'integer',
@@ -385,13 +396,14 @@ function init_plugin_suite_void_shield_render_detection_badge( $active ) {
  * @return void
  */
 function init_plugin_suite_void_shield_render_settings_page() {
-	$enabled         = get_option( 'init_plugin_suite_void_shield_enabled', '1' );
-	$apply_logged_in = get_option( 'init_plugin_suite_void_shield_apply_to_logged_in', '0' );
-	$min_time        = absint( get_option( 'init_plugin_suite_void_shield_min_time', 3 ) );
-	$js_delay        = absint( get_option( 'init_plugin_suite_void_shield_js_delay', 1000 ) );
-	$max_time        = absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) );
-	$block_rest      = get_option( 'init_plugin_suite_void_shield_block_rest', '0' );
-	$require_referer = get_option( 'init_plugin_suite_void_shield_require_referer', '0' );
+	$enabled          = get_option( 'init_plugin_suite_void_shield_enabled', '1' );
+	$apply_logged_in  = get_option( 'init_plugin_suite_void_shield_apply_to_logged_in', '0' );
+	$min_time         = absint( get_option( 'init_plugin_suite_void_shield_min_time', 3 ) );
+	$account_min_time = absint( get_option( 'init_plugin_suite_void_shield_account_min_time', 1 ) );
+	$js_delay         = absint( get_option( 'init_plugin_suite_void_shield_js_delay', 1000 ) );
+	$max_time         = absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) );
+	$block_rest       = get_option( 'init_plugin_suite_void_shield_block_rest', '0' );
+	$require_referer  = get_option( 'init_plugin_suite_void_shield_require_referer', '0' );
 
 	$enable_login            = get_option( 'init_plugin_suite_void_shield_enable_login_guard', '0' );
 	$login_guard_scope       = get_option( 'init_plugin_suite_void_shield_login_guard_scope', 'all' );
@@ -490,7 +502,26 @@ function init_plugin_suite_void_shield_render_settings_page() {
 								class="small-text">
 						<span class="description"><?php esc_html_e( 'seconds', 'init-void-shield' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Comments submitted faster than this will be rejected. Humans need time to read and type.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'Comments and other content-style forms (topics, replies, contact forms) submitted faster than this will be rejected. Humans need time to read and type. Login, registration, and other account forms use the separate setting below instead.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_account_min_time">
+							<?php esc_html_e( 'Account Forms Minimum Submit Time', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<input type="number" min="0" max="60" step="1"
+								name="init_plugin_suite_void_shield_account_min_time"
+								id="init_plugin_suite_void_shield_account_min_time"
+								value="<?php echo esc_attr( $account_min_time ); ?>"
+								class="small-text">
+						<span class="description"><?php esc_html_e( 'seconds', 'init-void-shield' ); ?></span>
+						<p class="description">
+							<?php esc_html_e( 'Separate, shorter floor used by the Login, Registration, Lost Password, Multisite Signup, WooCommerce registration, and BuddyPress registration guards instead of the general Minimum Submit Time above. A browser autofilling a saved username and password lets a genuine visitor submit far faster than someone typing a comment from scratch, so these forms need a lower bar. Set to 0 to disable this specific check for account forms while keeping every other layer (honeypot fields, JS/headless detection, signed time token) fully active.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>

@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.8
+Stable tag: 1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,8 +21,8 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 **Core honeypot engine (always on for comments):**
 
 1. **Dynamic field names** — derived from context + site salt (plus an optional custom prefix) so bots cannot hardcode field names.
-2. **CSS-clipped honeypots** — a text field and a checkbox hidden with rotating CSS techniques (never `display:none` or `visibility:hidden`, the two patterns CSS-aware bots specifically look for and skip) that bots fill but humans never see.
-3. **Signed time tokens** — each form carries a timestamp + HMAC hash verified server-side with `hash_equals()` to prevent timing attacks. Submissions under the minimum threshold are rejected.
+2. **CSS-clipped honeypots** — a text field and a checkbox hidden with rotating CSS techniques (never `display:none` or `visibility:hidden`, the two patterns CSS-aware bots specifically look for and skip) that bots fill but humans never see. The text field is also marked `readonly`, so browser and password-manager autofill (Chrome, saved-password prompts, and similar) never writes into it either — bots that scrape the raw HTML or drive a headless browser still fall for it exactly the same.
+3. **Signed time tokens** — each form carries a timestamp + HMAC hash verified server-side with `hash_equals()` to prevent timing attacks. Submissions under the minimum threshold are rejected; login/registration/other account-style forms use their own, shorter threshold by default (see **Account Forms Minimum Submit Time**), since a browser autofilling saved credentials lets a genuine visitor submit faster than someone typing a comment from scratch.
 4. **JavaScript + headless-browser verification** — a hidden token is injected after a configurable delay (plus a small random jitter, so the exact wait can't be read from the page source and timed around), and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window) picked up from real Selenium/Puppeteer/Playwright sessions. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't.
 5. **Non-browser User-Agent detection** — rejects submissions whose User-Agent identifies a scripted HTTP client (curl, Python requests, Go, Scrapy, and similar) rather than a real browser, catching bots that skip JavaScript entirely and simply replay the static form fields. On by default; the signature list is filterable.
 6. **Block REST API Comments** *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover since those requests never carry the honeypot fields or tokens.
@@ -58,7 +58,10 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 
 == Screenshots ==
 
-1. Settings page
+1. Comments & WordPress Core Forms settings
+2. Form Plugin Integrations & Community/E-commerce Integrations settings
+3. Advanced Protection & Statistics settings
+4. Init Void Shield admin dashboard widget
 
 == Frequently Asked Questions ==
 
@@ -149,6 +152,12 @@ A short reference of the developer filters shipped with the plugin (all are stan
 * `init_plugin_suite_void_shield_referer_exempt` — force-exempt a request from the Require Same-Site Referer check regardless of its settings-page toggle.
 
 == Changelog ==
+
+= 1.9 – September 10, 2026 =
+* Fixed: a genuine visitor could be wrongly rejected with "No real interaction detected" on a form the browser had already autofilled (most noticeably a login form with a saved username/password) even though **Require Real User Interaction** worked exactly as designed. On a prefilled form a real visitor often does nothing else on the page — no mouse movement, no typing, nothing to scroll to — until the moment they click the submit button, and the interaction verdict was previously written to the hidden token field only once, inside the delayed timer. If that timer happened to fire a moment before the visitor's own click, it permanently stamped the field "no interaction" with no way to correct it, even though that very click satisfied the check an instant later. The verdict is now also re-checked right when the form actually submits, and is only ever allowed to upgrade an already-stamped "no interaction" to verified — and only when a qualifying interaction genuinely occurred by then. A submission with zero real interaction is unaffected and still rejected exactly as before; this only fixes the case where the visitor did interact but the timing of a fixed delay had already recorded the wrong answer. This hook is only added when Require Real User Interaction is turned on in the first place, so sites that leave it off (the default) see no change in behavior at all.
+* Fixed: a genuine visitor on a login (or other account) form could also be rejected with "Submitted too fast" even though nothing was actually wrong — a browser autofilling a saved username and password lets a real visitor legitimately submit faster than the general **Minimum Submit Time** (tuned for typing a comment or filling out a contact form) assumed. Added a separate **Account Forms Minimum Submit Time** setting (default 1 second) that now applies specifically to the Login, Registration, Lost Password, Multisite Signup, WooCommerce registration, and BuddyPress registration guards, independent of the general setting used by comments and the content-style form-plugin integrations (CF7, WPForms, Gravity Forms, bbPress). Can be set down to 0 to disable this specific check for account forms while every other layer — honeypot fields, JS/headless detection, the signed time token itself — stays fully active. The `init_plugin_suite_void_shield_min_time` and `init_plugin_suite_void_shield_max_time` filters now also receive the guard context as a second argument, for anyone who needs to fine-tune a single form individually.
+* Hardened the honeypot trap field against browser and password-manager autofill: it's now marked `readonly`, which every major autofill engine (Chrome, Firefox, Safari, Edge) and password manager (LastPass, 1Password, Bitwarden, and similar) explicitly skips when deciding what to fill in, regardless of the field's CSS. Bot coverage is unaffected either way, since `readonly` has no effect on a scripted HTTP client posting the field name directly, nor on a JS-driven headless browser setting `.value` on the field itself — both still land in the trap exactly as before.
+* Updated the Vietnamese translation and the `.pot` template for the new setting's strings.
 
 = 1.8 – September 8, 2026 =
 * Fixed: a bare '&' inside the honeypot script could get HTML-entity-encoded by some environments (an HTML minifier, a multilingual plugin, a security/output-filtering plugin, or WordPress's own `convert_chars()`), turning `&&` into the literal text `&#038;&#038;` on the page. Browsers never decode entities inside `<script>` content, so this broke JS parsing entirely and silently rejected every submission. The script no longer emits any bare `&` character.
