@@ -456,6 +456,9 @@ function init_plugin_suite_void_shield_render_settings_page() {
 			<?php settings_fields( INIT_PLUGIN_SUITE_VOID_SHIELD_OPTION ); ?>
 
 			<h2><?php esc_html_e( 'Comments', 'init-void-shield' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'Settings on this screen that apply only to the comment form and the REST API comments endpoint. Thresholds shared with every other guarded form (Login, CF7, WooCommerce, and the rest) live in Timing & Token Engine below.', 'init-void-shield' ); ?>
+			</p>
 			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row">
@@ -488,6 +491,46 @@ function init_plugin_suite_void_shield_render_settings_page() {
 					</td>
 				</tr>
 
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_block_rest">
+							<?php esc_html_e( 'Block REST API Comments', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_block_rest" id="init_plugin_suite_void_shield_block_rest" value="1" <?php checked( $block_rest, '1' ); ?>>
+							<?php esc_html_e( 'Reject comments submitted directly through the REST API (wp/v2/comments).', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'The honeypot and JS token checks above only cover the classic comment form; REST API submissions bypass them entirely. Enable this only if your site does not rely on a headless app or other legitimate client that posts comments via the REST API.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_require_referer">
+							<?php esc_html_e( 'Require Same-Site Referer', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_require_referer" id="init_plugin_suite_void_shield_require_referer" value="1" <?php checked( $require_referer, '1' ); ?>>
+							<?php esc_html_e( 'Reject a comment submission whose Referer header is missing or points to a different site.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Catches a scripted bot that posts directly to the comment endpoint without ever loading the page. Off by default: some privacy-focused browsers and extensions strip the Referer header even on a real, same-site submission, which this cannot tell apart from a bot. Enable only after confirming it does not affect real visitors on your site, and use it alongside the other layers, not instead of them.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+			</table>
+
+			<h2><?php esc_html_e( 'Timing & Token Engine', 'init-void-shield' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'These thresholds are shared by the core engine: comments, the WordPress core forms below, and every form plugin integration on this page all use them, not comments alone.', 'init-void-shield' ); ?>
+			</p>
+			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row">
 						<label for="init_plugin_suite_void_shield_min_time">
@@ -560,40 +603,6 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						<span class="description"><?php esc_html_e( 'seconds', 'init-void-shield' ); ?></span>
 						<p class="description">
 							<?php esc_html_e( 'A submission carrying a token older than this is rejected, so a token cannot be captured once and replayed indefinitely. On a site with full-page caching, a token is baked in at the moment a page is cached, not the moment a visitor actually loads it — if comments from real visitors are being rejected as expired, raise this to comfortably cover your cache lifetime, or enable Lazy Fetch below instead of raising it.', 'init-void-shield' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="init_plugin_suite_void_shield_block_rest">
-							<?php esc_html_e( 'Block REST API Comments', 'init-void-shield' ); ?>
-						</label>
-					</th>
-					<td>
-						<label>
-							<input type="checkbox" name="init_plugin_suite_void_shield_block_rest" id="init_plugin_suite_void_shield_block_rest" value="1" <?php checked( $block_rest, '1' ); ?>>
-							<?php esc_html_e( 'Reject comments submitted directly through the REST API (wp/v2/comments).', 'init-void-shield' ); ?>
-						</label>
-						<p class="description">
-							<?php esc_html_e( 'The honeypot and JS token checks above only cover the classic comment form; REST API submissions bypass them entirely. Enable this only if your site does not rely on a headless app or other legitimate client that posts comments via the REST API.', 'init-void-shield' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="init_plugin_suite_void_shield_require_referer">
-							<?php esc_html_e( 'Require Same-Site Referer', 'init-void-shield' ); ?>
-						</label>
-					</th>
-					<td>
-						<label>
-							<input type="checkbox" name="init_plugin_suite_void_shield_require_referer" id="init_plugin_suite_void_shield_require_referer" value="1" <?php checked( $require_referer, '1' ); ?>>
-							<?php esc_html_e( 'Reject a comment submission whose Referer header is missing or points to a different site.', 'init-void-shield' ); ?>
-						</label>
-						<p class="description">
-							<?php esc_html_e( 'Catches a scripted bot that posts directly to the comment endpoint without ever loading the page. Off by default: some privacy-focused browsers and extensions strip the Referer header even on a real, same-site submission, which this cannot tell apart from a bot. Enable only after confirming it does not affect real visitors on your site, and use it alongside the other layers, not instead of them.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>

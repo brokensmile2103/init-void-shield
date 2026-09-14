@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.9
+Stable tag: 1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -153,10 +153,14 @@ A short reference of the developer filters shipped with the plugin (all are stan
 
 == Changelog ==
 
+= 1.10 – September 14, 2026 =
+* Reorganized the Settings screen: moved **Minimum Submit Time**, **Account Forms Minimum Submit Time**, **JavaScript Token Delay**, and **Maximum Token Age** out of "Comments" into a new **Timing & Token Engine** section, since these are shared by every guarded form, not just comments. No setting names, values, or behavior changed.
+* Updated the Vietnamese translation and the `.pot` template for the new section strings.
+
 = 1.9 – September 10, 2026 =
-* Fixed: a genuine visitor could be wrongly rejected with "No real interaction detected" on a form the browser had already autofilled (most noticeably a login form with a saved username/password) even though **Require Real User Interaction** worked exactly as designed. On a prefilled form a real visitor often does nothing else on the page — no mouse movement, no typing, nothing to scroll to — until the moment they click the submit button, and the interaction verdict was previously written to the hidden token field only once, inside the delayed timer. If that timer happened to fire a moment before the visitor's own click, it permanently stamped the field "no interaction" with no way to correct it, even though that very click satisfied the check an instant later. The verdict is now also re-checked right when the form actually submits, and is only ever allowed to upgrade an already-stamped "no interaction" to verified — and only when a qualifying interaction genuinely occurred by then. A submission with zero real interaction is unaffected and still rejected exactly as before; this only fixes the case where the visitor did interact but the timing of a fixed delay had already recorded the wrong answer. This hook is only added when Require Real User Interaction is turned on in the first place, so sites that leave it off (the default) see no change in behavior at all.
-* Fixed: a genuine visitor on a login (or other account) form could also be rejected with "Submitted too fast" even though nothing was actually wrong — a browser autofilling a saved username and password lets a real visitor legitimately submit faster than the general **Minimum Submit Time** (tuned for typing a comment or filling out a contact form) assumed. Added a separate **Account Forms Minimum Submit Time** setting (default 1 second) that now applies specifically to the Login, Registration, Lost Password, Multisite Signup, WooCommerce registration, and BuddyPress registration guards, independent of the general setting used by comments and the content-style form-plugin integrations (CF7, WPForms, Gravity Forms, bbPress). Can be set down to 0 to disable this specific check for account forms while every other layer — honeypot fields, JS/headless detection, the signed time token itself — stays fully active. The `init_plugin_suite_void_shield_min_time` and `init_plugin_suite_void_shield_max_time` filters now also receive the guard context as a second argument, for anyone who needs to fine-tune a single form individually.
-* Hardened the honeypot trap field against browser and password-manager autofill: it's now marked `readonly`, which every major autofill engine (Chrome, Firefox, Safari, Edge) and password manager (LastPass, 1Password, Bitwarden, and similar) explicitly skips when deciding what to fill in, regardless of the field's CSS. Bot coverage is unaffected either way, since `readonly` has no effect on a scripted HTTP client posting the field name directly, nor on a JS-driven headless browser setting `.value` on the field itself — both still land in the trap exactly as before.
+* Fixed: a real visitor on an autofilled form (most often login) could be wrongly flagged "No real interaction detected" if the JS delay timer fired just before their submit click, even with **Require Real User Interaction** working as designed. The verdict is now re-checked at submit time and can only upgrade an already-stamped "no interaction" result to verified.
+* Added a separate **Account Forms Minimum Submit Time** setting (default 1 second), used by the Login, Registration, Lost Password, Multisite Signup, WooCommerce registration, and BuddyPress registration guards instead of the general Minimum Submit Time — autofill lets a real visitor submit faster than someone typing a comment. Set to 0 to disable this check for account forms only. The `init_plugin_suite_void_shield_min_time` and `_max_time` filters now also receive the guard context as a second argument.
+* Hardened the honeypot trap field with `readonly`, so browser and password-manager autofill never fills it in; bot coverage is unaffected.
 * Updated the Vietnamese translation and the `.pot` template for the new setting's strings.
 
 = 1.8 – September 8, 2026 =
