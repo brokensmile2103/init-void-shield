@@ -81,6 +81,33 @@ add_action(
 
 		register_setting(
 			$group,
+			'init_plugin_suite_void_shield_comment_max_links',
+			array(
+				'type'              => 'integer',
+				'sanitize_callback' => function ( $v ) {
+					return max( 0, min( 50, absint( $v ) ) );
+				},
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_block_bbcode_links',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_block_author_url',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
 			'init_plugin_suite_void_shield_min_time',
 			array(
 				'type'              => 'integer',
@@ -205,6 +232,22 @@ add_action(
 
 		register_setting(
 			$group,
+			'init_plugin_suite_void_shield_enable_woocommerce_login',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_enable_woocommerce_lostpassword',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
 			'init_plugin_suite_void_shield_enable_bbpress',
 			array(
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
@@ -248,6 +291,14 @@ add_action(
 		register_setting(
 			$group,
 			'init_plugin_suite_void_shield_block_bot_user_agents',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_block_cross_site',
 			array(
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
@@ -341,7 +392,7 @@ function init_plugin_suite_void_shield_get_channel_labels() {
 		'cf7'          => __( 'Contact Form 7', 'init-void-shield' ),
 		'wpforms'      => __( 'WPForms', 'init-void-shield' ),
 		'gravityforms' => __( 'Gravity Forms', 'init-void-shield' ),
-		'woocommerce'  => __( 'WooCommerce registration', 'init-void-shield' ),
+		'woocommerce'  => __( 'WooCommerce account forms', 'init-void-shield' ),
 		'bbpress'      => __( 'bbPress topic/reply', 'init-void-shield' ),
 		'buddypress'   => __( 'BuddyPress registration', 'init-void-shield' ),
 		'other'        => __( 'Other', 'init-void-shield' ),
@@ -368,6 +419,11 @@ function init_plugin_suite_void_shield_get_reason_labels() {
 		'referer_mismatch'   => __( 'Referer missing or not from this site', 'init-void-shield' ),
 		'invalid_post_id'    => __( 'Invalid post ID', 'init-void-shield' ),
 		'rest_blocked'       => __( 'REST API endpoint blocked', 'init-void-shield' ),
+		'js_proof_invalid'   => __( 'Invalid JS proof (bot, or a page cached before 1.11)', 'init-void-shield' ),
+		'cross_site_request' => __( 'Submitted from another site', 'init-void-shield' ),
+		'too_many_links'     => __( 'Too many links in comment', 'init-void-shield' ),
+		'bbcode_link'        => __( 'BBCode link in comment', 'init-void-shield' ),
+		'author_url'         => __( 'URL in comment author name', 'init-void-shield' ),
 	);
 }
 
@@ -404,6 +460,9 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$max_time         = absint( get_option( 'init_plugin_suite_void_shield_max_time', 3600 ) );
 	$block_rest       = get_option( 'init_plugin_suite_void_shield_block_rest', '0' );
 	$require_referer  = get_option( 'init_plugin_suite_void_shield_require_referer', '0' );
+	$max_links        = absint( get_option( 'init_plugin_suite_void_shield_comment_max_links', 0 ) );
+	$block_bbcode     = get_option( 'init_plugin_suite_void_shield_block_bbcode_links', '0' );
+	$block_author_url = get_option( 'init_plugin_suite_void_shield_block_author_url', '0' );
 
 	$enable_login            = get_option( 'init_plugin_suite_void_shield_enable_login_guard', '0' );
 	$login_guard_scope       = get_option( 'init_plugin_suite_void_shield_login_guard_scope', 'all' );
@@ -416,6 +475,8 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$enable_gravityforms = get_option( 'init_plugin_suite_void_shield_enable_gravityforms', '0' );
 
 	$enable_woocommerce = get_option( 'init_plugin_suite_void_shield_enable_woocommerce_register', '0' );
+	$enable_woo_login   = get_option( 'init_plugin_suite_void_shield_enable_woocommerce_login', '0' );
+	$enable_woo_lostpw  = get_option( 'init_plugin_suite_void_shield_enable_woocommerce_lostpassword', '0' );
 	$enable_bbpress     = get_option( 'init_plugin_suite_void_shield_enable_bbpress', '0' );
 	$enable_buddypress  = get_option( 'init_plugin_suite_void_shield_enable_buddypress', '0' );
 
@@ -423,6 +484,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$enable_css_rotation = get_option( 'init_plugin_suite_void_shield_enable_css_rotation', '1' );
 	$headless_detection  = get_option( 'init_plugin_suite_void_shield_headless_detection', '1' );
 	$block_bot_uas       = get_option( 'init_plugin_suite_void_shield_block_bot_user_agents', '1' );
+	$block_cross_site    = get_option( 'init_plugin_suite_void_shield_block_cross_site', '1' );
 	$require_interaction = get_option( 'init_plugin_suite_void_shield_require_interaction', '0' );
 	$lazy_fetch          = get_option( 'init_plugin_suite_void_shield_lazy_fetch', '0' );
 
@@ -524,6 +586,59 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</p>
 					</td>
 				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_comment_max_links">
+							<?php esc_html_e( 'Maximum Links per Comment', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<input type="number" min="0" max="50" step="1"
+								name="init_plugin_suite_void_shield_comment_max_links"
+								id="init_plugin_suite_void_shield_comment_max_links"
+								value="<?php echo esc_attr( $max_links ); ?>"
+								class="small-text">
+						<span class="description"><?php esc_html_e( 'links', 'init-void-shield' ); ?></span>
+						<p class="description">
+							<?php esc_html_e( 'Reject a comment containing more links than this. Set to 0 (the default) to disable. Unlike the checks above, this and the two content filters below read what the commenter actually wrote, so they also catch spam posted by a real person or a real browser. They also apply to comments that bypass the honeypot checks, such as wpDiscuz comments.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_block_bbcode_links">
+							<?php esc_html_e( 'Block BBCode Links', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_block_bbcode_links" id="init_plugin_suite_void_shield_block_bbcode_links" value="1" <?php checked( $block_bbcode, '1' ); ?>>
+							<?php esc_html_e( 'Reject a comment containing a [url]...[/url] or [link]...[/link] BBCode link.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'WordPress never renders BBCode, so a real commenter gains nothing from it; it is a signature of spam tools built for forums. Off by default.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_block_author_url">
+							<?php esc_html_e( 'Block URLs in Author Name', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_block_author_url" id="init_plugin_suite_void_shield_block_author_url" value="1" <?php checked( $block_author_url, '1' ); ?>>
+							<?php esc_html_e( 'Reject a comment whose Name field contains a web address.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'A classic way to sneak a keyword link into the comment byline. The Website field is not affected. Off by default.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
 			</table>
 
 			<h2><?php esc_html_e( 'Timing & Token Engine', 'init-void-shield' ); ?></h2>
@@ -564,7 +679,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 								class="small-text">
 						<span class="description"><?php esc_html_e( 'seconds', 'init-void-shield' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Separate, shorter floor used by the Login, Registration, Lost Password, Multisite Signup, WooCommerce registration, and BuddyPress registration guards instead of the general Minimum Submit Time above. A browser autofilling a saved username and password lets a genuine visitor submit far faster than someone typing a comment from scratch, so these forms need a lower bar. Set to 0 to disable this specific check for account forms while keeping every other layer (honeypot fields, JS/headless detection, signed time token) fully active.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'Separate, shorter floor used by the Login, Registration, Lost Password, Multisite Signup, WooCommerce account forms, and BuddyPress registration guards instead of the general Minimum Submit Time above. A browser autofilling a saved username and password lets a genuine visitor submit far faster than someone typing a comment from scratch, so these forms need a lower bar. Set to 0 to disable this specific check for account forms while keeping every other layer (honeypot fields, JS/headless detection, signed time token) fully active.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -583,7 +698,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 								class="small-text">
 						<span class="description"><?php esc_html_e( 'milliseconds', 'init-void-shield' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Delay before the hidden JS token is injected. Catches headless browsers that submit instantly. A small random amount of extra time is always added on top of this value so the exact wait cannot be read from the page source and timed around.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'Delay before the hidden JS token is injected. Catches headless browsers that submit instantly. A small random amount of extra time is always added on top of this value so the exact wait cannot be read from the page source and timed around. On login, registration, comment, and other forms that submit without AJAX, a visitor who submits before the token is ready (for example right after the browser autofills a saved password) is briefly held until it is, instead of being rejected.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -772,6 +887,42 @@ function init_plugin_suite_void_shield_render_settings_page() {
 
 				<tr>
 					<th scope="row">
+						<label for="init_plugin_suite_void_shield_enable_woocommerce_login">
+							<?php esc_html_e( 'WooCommerce Login', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_enable_woocommerce_login" id="init_plugin_suite_void_shield_enable_woocommerce_login" value="1" <?php checked( $enable_woo_login, '1' ); ?>>
+							<?php esc_html_e( 'Add the honeypot guard to the WooCommerce login form (My Account page and the checkout login prompt).', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Independent from the core Login Guard, since WooCommerce uses its own login form and handler. Uses the Account Forms Minimum Submit Time.', 'init-void-shield' ); ?>
+						</p>
+						<p class="description"><?php init_plugin_suite_void_shield_render_detection_badge( $woocommerce_active ); ?></p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_enable_woocommerce_lostpassword">
+							<?php esc_html_e( 'WooCommerce Lost Password', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_enable_woocommerce_lostpassword" id="init_plugin_suite_void_shield_enable_woocommerce_lostpassword" value="1" <?php checked( $enable_woo_lostpw, '1' ); ?>>
+							<?php esc_html_e( 'Add the honeypot guard to the WooCommerce lost-password form.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Always in effect while Guard Lost Password Form (under WordPress Core Forms) is enabled, since WooCommerce\'s reset handler runs the same core check.', 'init-void-shield' ); ?>
+						</p>
+						<p class="description"><?php init_plugin_suite_void_shield_render_detection_badge( $woocommerce_active ); ?></p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
 						<label for="init_plugin_suite_void_shield_enable_bbpress">
 							<?php esc_html_e( 'bbPress Topics & Replies', 'init-void-shield' ); ?>
 						</label>
@@ -847,7 +998,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 					<td>
 						<label>
 							<input type="checkbox" name="init_plugin_suite_void_shield_headless_detection" id="init_plugin_suite_void_shield_headless_detection" value="1" <?php checked( $headless_detection, '1' ); ?>>
-							<?php esc_html_e( 'Flag common automation signals (navigator.webdriver, zero-size browser window) picked up by the JS token script.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'Flag common automation signals (navigator.webdriver, zero-size browser window, HeadlessChrome/PhantomJS, Selenium/ChromeDriver traces) picked up by the JS token script.', 'init-void-shield' ); ?>
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'Lightweight, client-side only, no external calls. Disable this if you use browser-automation tools to test submissions on your own site.', 'init-void-shield' ); ?>
@@ -868,6 +1019,23 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'A real browser running the JS layer always sends its own browser User-Agent, so a match here is a near-zero-false-positive signal. Catches a bot that never runs JavaScript at all and simply replays the static form fields, which the honeypot and JS checks alone cannot see. On by default; the list of signatures is filterable for developers.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_block_cross_site">
+							<?php esc_html_e( 'Block Cross-Site Submissions', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_block_cross_site" id="init_plugin_suite_void_shield_block_cross_site" value="1" <?php checked( $block_cross_site, '1' ); ?>>
+							<?php esc_html_e( 'Reject a submission the browser itself reports as sent from a different website (Sec-Fetch-Site: cross-site).', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Browsers set this header themselves and page scripts cannot change it, so unlike the Referer header it is not stripped by privacy extensions. A real visitor using a form on this site (or on one of its subdomains) never sends it as cross-site. A request without the header, from an older browser for example, is never rejected by this check. Applies to every guarded form. On by default; only disable it if a form on an unrelated domain legitimately posts to this site.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>

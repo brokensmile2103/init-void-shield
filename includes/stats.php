@@ -23,18 +23,18 @@ function init_plugin_suite_void_shield_get_channel_from_context( $context ) {
 	$context = (string) $context;
 
 	$map = array(
-		'comment_'             => 'comment',
-		'rest_comment'         => 'rest',
-		'login'                => 'login',
-		'register'             => 'register',
-		'lostpassword'         => 'lostpassword',
-		'multisite_signup'     => 'multisite',
-		'cf7_'                 => 'cf7',
-		'wpforms_'             => 'wpforms',
-		'gf_'                  => 'gravityforms',
-		'woocommerce_register' => 'woocommerce',
-		'bbpress_'             => 'bbpress',
-		'buddypress_register'  => 'buddypress',
+		'comment_'            => 'comment',
+		'rest_comment'        => 'rest',
+		'login'               => 'login',
+		'register'            => 'register',
+		'lostpassword'        => 'lostpassword',
+		'multisite_signup'    => 'multisite',
+		'cf7_'                => 'cf7',
+		'wpforms_'            => 'wpforms',
+		'gf_'                 => 'gravityforms',
+		'woocommerce_'        => 'woocommerce',
+		'bbpress_'            => 'bbpress',
+		'buddypress_register' => 'buddypress',
 	);
 
 	foreach ( $map as $needle => $channel ) {

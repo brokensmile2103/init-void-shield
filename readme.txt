@@ -4,7 +4,7 @@ Tags: antispam, honeypot, comments, spam, no-captcha
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.10
+Stable tag: 1.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,23 +23,13 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 1. **Dynamic field names** — derived from context + site salt (plus an optional custom prefix) so bots cannot hardcode field names.
 2. **CSS-clipped honeypots** — a text field and a checkbox hidden with rotating CSS techniques (never `display:none` or `visibility:hidden`, the two patterns CSS-aware bots specifically look for and skip) that bots fill but humans never see. The text field is also marked `readonly`, so browser and password-manager autofill (Chrome, saved-password prompts, and similar) never writes into it either — bots that scrape the raw HTML or drive a headless browser still fall for it exactly the same.
 3. **Signed time tokens** — each form carries a timestamp + HMAC hash verified server-side with `hash_equals()` to prevent timing attacks. Submissions under the minimum threshold are rejected; login/registration/other account-style forms use their own, shorter threshold by default (see **Account Forms Minimum Submit Time**), since a browser autofilling saved credentials lets a genuine visitor submit faster than someone typing a comment from scratch.
-4. **JavaScript + headless-browser verification** — a hidden token is injected after a configurable delay (plus a small random jitter, so the exact wait can't be read from the page source and timed around), and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window) picked up from real Selenium/Puppeteer/Playwright sessions. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't.
-5. **Non-browser User-Agent detection** — rejects submissions whose User-Agent identifies a scripted HTTP client (curl, Python requests, Go, Scrapy, and similar) rather than a real browser, catching bots that skip JavaScript entirely and simply replay the static form fields. On by default; the signature list is filterable.
-6. **Block REST API Comments** *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover since those requests never carry the honeypot fields or tokens.
-7. **Require Same-Site Referer** *(optional)* — rejects a comment submission whose Referer header is missing or points elsewhere, catching bots that post directly to the comment endpoint. Off by default and disclosed as a trade-off, since some privacy-focused browsers strip Referer even on genuine same-site submissions.
-
-**Recent updates (1.4–1.6):**
-
-- **Fixed:** a setting could get permanently stuck at its default value once saved back to it, unable to change afterwards — most noticeable on the main "Enable Init Void Shield" toggle, since a fresh install already starts there. Caused by a WordPress core edge case triggered by `register_setting()`'s `default` argument; removed from every setting in this plugin, with no change to displayed defaults.
-- **wpDiscuz compatibility** — wpDiscuz builds its comment submissions from a fixed set of fields rather than serializing its form, so this plugin's checks can never see or verify them. Enabling wpDiscuz on a site now automatically exempts its comments from verification instead of rejecting real visitors with a check they can't satisfy — a compatibility bypass, not protection.
-- **Fixed:** a comment submission's post ID is now read from the value WordPress core has already resolved, instead of re-reading the raw `comment_post_ID` POST field directly, which not every comment form sends under that exact name.
-- **Login Guard Scope** — a new "wp-login.php only" option for the Login Guard: stop guarding a front-end `wp_login_form()` usage (e.g. a custom login page, widget, or modal) entirely, keeping full protection on the native `wp-login.php` form. Useful if that front-end form lives on a page a full-page cache might serve stale. Uses the Referer header as a heuristic to tell the two forms apart — a deliberate, disclosed trade-off; the default ("Everywhere") remains the strongest option.
-- **Higher Maximum Token Age ceiling** — raised from 24 hours to 30 days, for sites with long-lived full-page caching.
-- **Lazy Fetch (Cache-Safe Tokens)** — optional layer (off by default): refreshes the time token via a small same-origin `fetch()` request (plain JavaScript, no jQuery) as soon as the page truly loads, instead of relying only on the value baked in when the page was rendered — which, on a cached page, reflects when the cache was generated, not when a real visitor loaded it. Applies to every guarded form. If the request fails or JavaScript is unavailable, the original baked-in token is used as a fallback, so this can only help, never hurt.
-- **Context-bound, self-expiring time tokens** — the signed time token is bound to the specific form it was issued for and rejected once it goes stale, hardening the core anti-replay layer.
-- **Optional real-interaction check** — under Advanced Protection, require at least one genuine mouse, keyboard, touch, or scroll event before a submission is accepted, catching bots that simply wait out the JS delay instead of interacting with the page. Off by default.
-- **Three more integrations** — WooCommerce (My Account registration), bbPress (New Topic and Reply forms), and BuddyPress (registration), plus a guard for the Multisite site/user signup form (`wp-signup.php`). Each is off by default, same as the existing integrations.
-- **Optional Dashboard widget** — a compact "Blocked Submissions" summary on the WordPress Dashboard, off by default, visible only to users who can manage options.
+4. **JavaScript + headless-browser verification** — a signed, per-form JS proof is injected after a configurable delay (plus a small random jitter, so the exact wait can't be read from the page source and timed around), and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window, HeadlessChrome/PhantomJS, Selenium/ChromeDriver traces) picked up from real Selenium/Puppeteer/Playwright sessions. The proof is bound to the form's own time token and never appears in plain text in the page, so a bot that scrapes the HTML and replays hidden values can't produce it. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't.
+5. **Submit Hold** — on login, registration, comment, and other forms that submit without AJAX, a visitor who clicks submit before the guard is ready (typically right after the browser autofills a saved password) is held for a moment and submitted automatically once it is, instead of being rejected. Nothing is relaxed server-side.
+6. **Non-browser User-Agent detection** — rejects submissions whose User-Agent identifies a scripted HTTP client (curl, Python requests, Go, Scrapy, and similar) rather than a real browser, catching bots that skip JavaScript entirely and simply replay the static form fields. On by default; the signature list is filterable.
+7. **Block Cross-Site Submissions** — rejects a submission the browser itself reports as sent from a different website (`Sec-Fetch-Site: cross-site`), a header page scripts cannot forge and privacy extensions don't strip. A request without the header is never rejected by this check. On by default.
+8. **Block REST API Comments** *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover since those requests never carry the honeypot fields or tokens.
+9. **Require Same-Site Referer** *(optional)* — rejects a comment submission whose Referer header is missing or points elsewhere, catching bots that post directly to the comment endpoint. Off by default and disclosed as a trade-off, since some privacy-focused browsers strip Referer even on genuine same-site submissions.
+10. **Comment content filters** *(optional)* — a maximum number of links per comment, BBCode link blocking, and blocking web addresses in the author name. Unlike the behavioral layers, these read what was actually written, so they also catch spam posted by a real person or a real browser — including wpDiscuz comments, which the honeypot layers can't see.
 
 **Key design goals:**
 
@@ -47,7 +37,7 @@ GitHub repository: [https://github.com/brokensmile2103/init-void-shield](https:/
 - No external JS/CDN calls
 - No CAPTCHA, no puzzles, no user interruption
 - Logged-in users are bypassed automatically on the comment form (optional override in settings)
-- Every guard beyond the core comment form is opt-in — nothing new is silently turned on when you update
+- Every guard beyond the core comment form is opt-in — no new form is silently guarded when you update
 - Bots receive HTTP 200 OK on the comment form so they think they succeeded and move on
 
 == Installation ==
@@ -90,10 +80,13 @@ By default ("Everywhere"), the Login Guard protects both the native `wp-login.ph
 No. Each is off by default and only takes effect if the matching plugin is active — the settings page shows a "detected / not detected" status next to each toggle.
 
 = Are the WooCommerce / bbPress / BuddyPress integrations enabled by default? =
-No, same as the other integrations: each is off by default and only takes effect if the matching plugin is active. WooCommerce guards the "My Account" registration form; bbPress guards the New Topic and Reply forms; BuddyPress guards the registration (signup) form. The Multisite signup guard (`wp-signup.php`) only has an effect on a Multisite install and is also off by default.
+No, same as the other integrations: each is off by default and only takes effect if the matching plugin is active. WooCommerce guards the "My Account" registration form, and optionally the WooCommerce login form (My Account and the checkout login prompt) and lost-password form; bbPress guards the New Topic and Reply forms; BuddyPress guards the registration (signup) form. The Multisite signup guard (`wp-signup.php`) only has an effect on a Multisite install and is also off by default.
 
 = Why aren't Ninja Forms or Forminator supported? =
 Both build their forms client-side and collect submitted data through their own JavaScript field model rather than serializing the whole `<form>` element, so a honeypot field simply appended to the page would not reliably be sent to the server — it would look like protection without actually doing anything. Both also already ship their own built-in honeypot field. Support may be reconsidered if a reliable hook becomes available.
+
+= Does this work with wpDiscuz? =
+wpDiscuz builds its comment submissions from a fixed set of fields rather than serializing the whole form, so this plugin's checks can never see or verify them. When wpDiscuz is detected active, its comments are automatically exempted from verification instead of being rejected — a compatibility bypass, not an added layer of protection.
 
 = What is the Maximum Token Age setting? =
 Each guard issues a signed token good for a limited time window: too fast (below Minimum Submit Time) and too old (above Maximum Token Age) are both rejected. The ceiling exists so a token cannot be captured once and replayed indefinitely; the default of 1 hour is generous enough for a visitor who takes their time filling out a form. Increase it (up to 30 days) if legitimate visitors on your site routinely take longer than that, or if your site uses full-page caching — see the next question.
@@ -120,7 +113,7 @@ When enabled, a comment submission is rejected if its Referer header is missing 
 Yes. Set a **Custom Field Prefix** under Advanced Protection. Field names are still dynamically derived per context and site salt on top of that prefix.
 
 = Does the headless-browser detection call any external service? =
-No. It only reads `navigator.webdriver` and the browser window size on the visitor's own device — no external requests, no tracking.
+No. It only reads a handful of properties on the visitor's own device (`navigator.webdriver`, the browser window size, the User-Agent string, and globals/markers that only automation frameworks inject) — no external requests, no tracking.
 
 = What does the statistics feature store? =
 Only aggregate counters (a total, a breakdown by channel, a breakdown by block reason, and a last-blocked timestamp) in one non-autoloaded option. No per-submission logs, IP addresses, or personal data are recorded. It can be turned off or reset from the settings page at any time.
@@ -130,6 +123,18 @@ No. Enable **Show Dashboard Widget** under Statistics. It's only visible to user
 
 = I see a JavaScript syntax error in the browser console near "lazyFetchEnabled", and every comment gets rejected — what's happening? =
 This was a bug fixed in 1.8: some environments (an HTML minifier, a multilingual plugin, a security/output-filtering plugin, or WordPress's own `convert_chars()`) rewrite a bare `&` in page output into `&#038;`, which is safe for ordinary HTML text but breaks the literal JavaScript inside a `<script>` tag, since browsers never decode entities there. If you're on 1.8 or later and still see this, please report it along with your active plugins/theme so the specific source can be identified.
+
+= Why does logging in sometimes take about a second longer after updating to 1.11? =
+That's **Submit Hold** at work. If a visitor clicks "Log In" before the guard is ready — most often because the browser autofilled a saved password and they clicked right away — the submission is held for a moment (at most the JavaScript Token Delay or the Minimum Submit Time, whichever is longer) and then sent automatically. Before 1.11 such a login was rejected outright. It applies to forms that submit without AJAX: the WordPress core forms, comments, WooCommerce account forms, bbPress, and BuddyPress. Contact Form 7, WPForms, and Gravity Forms send their forms from their own scripts and are left unchanged.
+
+= After updating to 1.11, some submissions are blocked as "Invalid JS proof" — why? =
+1.11 replaced the fixed JS token value with a signed proof unique to each form render. A page served from a full-page cache built before the update still contains the old script, whose submissions now fail that check. Purge your page cache (and any CDN cache) once after updating. If the reason keeps appearing afterward, it is a bot.
+
+= What does "Block Cross-Site Submissions" do, and is it safe to leave on? =
+Modern browsers attach a `Sec-Fetch-Site` header to every request themselves; page scripts cannot set or change it. A genuine visitor submitting a form on your site always sends `same-origin` (or `same-site` from one of your subdomains). `cross-site` means the form was posted from a different website — a spam page auto-submitting a copy of your form, for example — which a real visitor never does. A request without the header (an older browser, or a plain script) is never rejected by this check, so it cannot produce a false positive on its own. The only setup that needs it off is one where a form on an unrelated domain legitimately posts to your site (e.g. a Multisite network with subsites on unrelated domains sharing one login form); the `init_plugin_suite_void_shield_cross_site_exempt` filter can exempt specific requests instead.
+
+= What do the comment content filters do? =
+Three independent, opt-in checks under **Comments**: **Maximum Links per Comment** (0 = off), **Block BBCode Links** (a complete `[url]…[/url]` or `[link]…[/link]` pair, which WordPress never renders anyway), and **Block URLs in Author Name**. They catch spam a real person or a real browser posts, which the behavioral layers can't, and they also apply to wpDiscuz comments. Pingbacks and trackbacks are never checked. Blocked comments get the same soft-kill response as the rest of the comment guard.
 
 = Can developers customize the behavior? =
 Yes. See the **Filters** section below for the full list, or the documentation on GitHub for more detail.
@@ -150,8 +155,26 @@ A short reference of the developer filters shipped with the plugin (all are stan
 * `init_plugin_suite_void_shield_js_delay_jitter_max` — override the maximum random jitter (milliseconds) added on top of the JavaScript Token Delay.
 * `init_plugin_suite_void_shield_min_interaction_delay` — override the minimum time (milliseconds) that must pass before a Require Real User Interaction event is accepted.
 * `init_plugin_suite_void_shield_referer_exempt` — force-exempt a request from the Require Same-Site Referer check regardless of its settings-page toggle.
+* `init_plugin_suite_void_shield_cross_site_exempt` — force-exempt a request from the Block Cross-Site Submissions check; receives the guard context as a second argument.
+* `init_plugin_suite_void_shield_submit_hold_enabled` — enable or disable Submit Hold for a given guard context (e.g. for a custom natively-submitted form added via `init_plugin_suite_void_shield_build_guard_markup()`).
+* `init_plugin_suite_void_shield_submit_hold_fetch_wait` — maximum time (milliseconds) Submit Hold waits for a pending Lazy Fetch request. Default 4000.
+* `init_plugin_suite_void_shield_skip_content_filters` — skip the comment content filters for a request.
+* `init_plugin_suite_void_shield_comment_content_violation` — add your own comment content rules: return a reason key to block a comment, or an empty string to allow it.
 
 == Changelog ==
+
+= 1.11 – September 23, 2026 =
+* Fixed: a real visitor could still be rejected on the Login form (and other account forms) when the browser autofilled a saved password and they clicked "Log In" within the first second. The JS token only existed after the JavaScript Token Delay had elapsed, and the Minimum Submit Time compares whole seconds, so such a click was flagged as "Missing or invalid JS token" or "Submitted too fast". Added **Submit Hold**: on forms that submit without AJAX (WordPress core forms, comments, WooCommerce account forms, bbPress, BuddyPress), an early submission is now held for a moment and sent automatically once the guard is ready, instead of being rejected. No server-side check was relaxed — the held submission simply arrives once it satisfies them. The clicked button's name/value is preserved, and repeated clicks while holding result in a single submission.
+* Security: the JS token is no longer the fixed string `human_verified`, which was identical on every site and could be posted by a bot without running any JavaScript. It is now a signed proof bound to the form's own time token and context, embedded in the page only in sealed form. A submission carrying a missing, static, or mismatched proof is rejected with the new "Invalid JS proof" block reason. Lazy Fetch now refreshes the proof together with the time token. **Purge your page cache once after updating** — pages cached with the previous script will fail this check.
+* Added **Block Cross-Site Submissions** under Advanced Protection (on by default): rejects a submission the browser itself reports as sent from another website (`Sec-Fetch-Site: cross-site`). A request without the header is never rejected by this check. Exemptible per request via `init_plugin_suite_void_shield_cross_site_exempt`.
+* Strengthened **Headless Browser Detection**: now also flags `HeadlessChrome`/`PhantomJS` User-Agents, PhantomJS/Nightmare/DOM-automation globals, and Selenium ChromeDriver markers.
+* Strengthened **Block Non-Browser User Agents**: added HeadlessChrome, PhantomJS, HTTPX, aiohttp, axios, undici, HTTPie, and Colly signatures.
+* Added **comment content filters** under Comments (each opt-in, off by default): **Maximum Links per Comment**, **Block BBCode Links**, and **Block URLs in Author Name**. They also apply to wpDiscuz comments, which the honeypot layers cannot verify. New filters `init_plugin_suite_void_shield_skip_content_filters` and `init_plugin_suite_void_shield_comment_content_violation` (for adding your own rules).
+* Added **WooCommerce Login** (My Account and the checkout login prompt) and **WooCommerce Lost Password** guards under Community & E-commerce Integrations, both off by default. Both use the Account Forms Minimum Submit Time and benefit from Submit Hold.
+* Fixed: with **Guard Lost Password Form** enabled, every WooCommerce password-reset request was rejected, genuine ones included, since WooCommerce's reset handler runs the same core check but its form never carried the honeypot fields. The WooCommerce lost-password form is now always guarded while the core Lost Password guard is enabled, and each form is verified against its own context.
+* Fixed: uninstalling the plugin left the Account Forms Minimum Submit Time, Require Same-Site Referer, and Block Non-Browser User Agents options behind.
+* Stats: WooCommerce blocks are now grouped as "WooCommerce account forms", with new block reasons for the checks above.
+* Updated the Vietnamese translation and the `.pot` template for the new strings.
 
 = 1.10 – September 14, 2026 =
 * Reorganized the Settings screen: moved **Minimum Submit Time**, **Account Forms Minimum Submit Time**, **JavaScript Token Delay**, and **Maximum Token Age** out of "Comments" into a new **Timing & Token Engine** section, since these are shared by every guarded form, not just comments. No setting names, values, or behavior changed.

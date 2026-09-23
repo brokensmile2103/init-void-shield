@@ -10,10 +10,11 @@
  * keeps the Minimum/Maximum Submit Time gates anchored to real visit time
  * regardless of how long the page sat in a cache.
  *
- * This endpoint is stateless: it only recomputes the same signed hash the
- * render step would have produced for the given context. It stores
- * nothing, matching the plugin's zero-database design, and is only
- * registered at all while Lazy Fetch is enabled.
+ * This endpoint is stateless: it only recomputes the same signed values
+ * the render step would have produced for the given context (the time
+ * hash plus the sealed JS proof bound to it). It stores nothing, matching
+ * the plugin's zero-database design, and is only registered at all while
+ * Lazy Fetch is enabled.
  *
  * @package Init_Void_Shield
  */
@@ -77,10 +78,17 @@ function init_plugin_suite_void_shield_rest_token_callback( WP_REST_Request $req
 	$current_time = time();
 	$time_hash    = init_plugin_suite_void_shield_get_time_hash( $current_time, $context );
 
+	// The JS proof is bound to the time token, so a refreshed time token
+	// needs a matching refreshed proof. It is returned sealed, the same way
+	// the render step embeds it, and the client swaps all three values in
+	// together so the submitted fields always stay mutually consistent.
+	$seal = init_plugin_suite_void_shield_seal_js_proof( init_plugin_suite_void_shield_get_js_proof( $current_time, $context ) );
+
 	$response = new WP_REST_Response(
 		array(
 			'time' => $current_time,
 			'hash' => $time_hash,
+			'seal' => $seal,
 		)
 	);
 

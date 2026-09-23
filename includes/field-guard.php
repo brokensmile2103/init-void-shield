@@ -3,9 +3,10 @@
  * Field Guard
  *
  * Shared honeypot engine: dynamic field names, CSS-trap rendering, signed
- * time tokens, JS/headless verification. Reused by the comment form, the
- * default WP login/registration/lost-password forms, and the optional
- * Contact Form 7 / WPForms / Gravity Forms integrations.
+ * time tokens, signed JS proof, JS/headless verification, Submit Hold, and
+ * the cross-site submission check. Reused by the comment form, the default
+ * WP login/registration/lost-password forms, and every optional form
+ * plugin, e-commerce, and community integration.
  *
  * @package Init_Void_Shield
  */
@@ -137,6 +138,13 @@ function init_plugin_suite_void_shield_get_hidden_style() {
  * baked-in time/hash token -- which the honeypot and JS layers alone
  * cannot see, since both are things a careful non-JS script can copy.
  *
+ * The list also includes the default User-Agent of headless browser builds
+ * (`HeadlessChrome`, `PhantomJS`). A person browsing with a normal Chrome,
+ * Edge, Opera, Brave, or Chromium window never sends either token -- they
+ * only appear when a browser engine is launched without a window by an
+ * automation framework (Puppeteer, Playwright, Selenium) that did not
+ * bother to override its UA, so they are just as reliable a signal.
+ *
  * @return array
  */
 function init_plugin_suite_void_shield_get_blocked_user_agent_signatures() {
@@ -155,6 +163,14 @@ function init_plugin_suite_void_shield_get_blocked_user_agent_signatures() {
 		'guzzlehttp',
 		'java/',
 		'httpclient',
+		'headlesschrome',
+		'phantomjs',
+		'python-httpx',
+		'aiohttp',
+		'axios/',
+		'undici',
+		'httpie',
+		'colly',
 	);
 
 	return apply_filters( 'init_plugin_suite_void_shield_blocked_user_agent_signatures', $signatures );
@@ -206,6 +222,148 @@ function init_plugin_suite_void_shield_get_time_hash( $submit_time, $context ) {
 	return wp_hash( $submit_time . '|' . (string) $context . '|init_plugin_suite_void_shield_secret' );
 }
 
+/**
+ * Compute the JS proof expected back from a genuine browser for a given
+ * time token and guard context.
+ *
+ * Before 1.11 the JS layer wrote the fixed string `human_verified` into
+ * the hidden token field. That value was the same on every site running
+ * this plugin, so a bot written specifically against the plugin could
+ * simply post it without ever executing the script, clearing the whole JS
+ * gate for free. The proof is now an HMAC bound to the exact time token
+ * and context of the form it was issued for (and to this site's secret
+ * keys via wp_hash()), so it cannot be precomputed, cannot be reused on a
+ * different form, and changes every second a page is rendered.
+ *
+ * @param int    $submit_time Unix timestamp of the matching time token.
+ * @param string $context     Guard context the token was issued for.
+ * @return string
+ */
+function init_plugin_suite_void_shield_get_js_proof( $submit_time, $context ) {
+	return wp_hash( (int) $submit_time . '|' . (string) $context . '|init_plugin_suite_void_shield_js_proof' );
+}
+
+/**
+ * Seal a JS proof for embedding in page output.
+ *
+ * The proof is never printed in plain text. It is reversed and every
+ * character code is XOR-ed with a per-render random key, and only the
+ * inline script knows how to reassemble it. This is deliberately
+ * lightweight obfuscation, not cryptography -- a bot that actually runs
+ * the page's JavaScript (or that is written to reverse this exact routine)
+ * can still recover the value. What it removes is the far larger class of
+ * bots that scrape the static HTML and fill in whatever hidden field
+ * values they find: there is no longer a ready-to-copy value anywhere in
+ * the markup, so they fail the proof check even though the rest of the
+ * form looks perfectly valid to them.
+ *
+ * @param string $proof Proof from init_plugin_suite_void_shield_get_js_proof().
+ * @return array { @type int $k XOR key. @type int[] $p Sealed character codes. }
+ */
+function init_plugin_suite_void_shield_seal_js_proof( $proof ) {
+	$key   = wp_rand( 1, 127 );
+	$codes = array();
+
+	foreach ( str_split( strrev( (string) $proof ) ) as $char ) {
+		$codes[] = ord( $char ) ^ $key;
+	}
+
+	return array(
+		'k' => $key,
+		'p' => $codes,
+	);
+}
+
+// ------------------------------------------------------------------
+// 4b. Submit Hold (natively-submitted forms)
+// ------------------------------------------------------------------
+
+/**
+ * Determine whether a guard context belongs to a form that submits through
+ * a normal browser form submission (full page POST), as opposed to a form
+ * plugin that collects and sends its fields through its own AJAX handler.
+ *
+ * On these forms, the inline script holds a submission that arrives before
+ * the guard is ready (JS token not issued yet, or Minimum Submit Time not
+ * reached yet) and releases it automatically the moment it is, instead of
+ * letting it go through early and be rejected server-side. The classic
+ * case is a login form the browser has already autofilled: the visitor can
+ * click "Log in" well under a second after the page loads, before the JS
+ * token delay has elapsed. Nothing is relaxed on the server: every gate
+ * still requires exactly what it required before, the held submission
+ * simply reaches the server once it satisfies them.
+ *
+ * AJAX-driven form plugins (Contact Form 7, WPForms, Gravity Forms) are
+ * intentionally excluded: each serializes and sends the form from its own
+ * script, which a held-and-replayed native submit event would conflict
+ * with, and a person filling in a contact form from scratch never submits
+ * it within the first second or two anyway.
+ *
+ * @param string $context Guard context.
+ * @return bool
+ */
+function init_plugin_suite_void_shield_is_submit_hold_context( $context ) {
+	$context  = (string) $context;
+	$prefixes = array( 'comment_', 'woocommerce_', 'bbpress_' );
+	$exact    = array( 'login', 'register', 'lostpassword', 'multisite_signup', 'buddypress_register' );
+	$enabled  = in_array( $context, $exact, true );
+
+	if ( ! $enabled ) {
+		foreach ( $prefixes as $prefix ) {
+			if ( 0 === strpos( $context, $prefix ) ) {
+				$enabled = true;
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Filter whether Submit Hold is used for a guard context.
+	 *
+	 * Only enable it for a form that submits through a normal browser form
+	 * submission. Disabling it never weakens verification -- an early
+	 * submission is then simply sent as-is and rejected server-side, which
+	 * was the behavior before 1.11.
+	 *
+	 * @param bool   $enabled Whether Submit Hold is used for this context.
+	 * @param string $context Guard context.
+	 */
+	return (bool) apply_filters( 'init_plugin_suite_void_shield_submit_hold_enabled', $enabled, $context );
+}
+
+// ------------------------------------------------------------------
+// 4c. Cross-site submission check (Sec-Fetch-Site)
+// ------------------------------------------------------------------
+
+/**
+ * Check whether the current request was sent cross-site according to the
+ * browser's own `Sec-Fetch-Site` request header.
+ *
+ * Modern browsers attach `Sec-Fetch-Site` to every request themselves, and
+ * page scripts cannot set or alter it. A genuine visitor submitting a form
+ * on this site always produces `same-origin` (or `same-site`, for a form on
+ * a sibling subdomain). `cross-site` means the POST was fired from a page
+ * on a different site -- a spam page auto-submitting a hidden copy of the
+ * form, or a bot driving a browser from somewhere else -- which a real
+ * visitor using this site never does.
+ *
+ * A missing header is deliberately NOT treated as cross-site: older
+ * browsers and plain scripts do not send it at all, and those are already
+ * covered by the other layers. Only a positive `cross-site` value counts,
+ * which keeps this check effectively free of false positives.
+ *
+ * @return bool
+ */
+function init_plugin_suite_void_shield_is_cross_site_request() {
+	if ( empty( $_SERVER['HTTP_SEC_FETCH_SITE'] ) ) {
+		return false;
+	}
+
+	$site = strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_SEC_FETCH_SITE'] ) ) );
+
+	return 'cross-site' === $site;
+}
+
 // ------------------------------------------------------------------
 // 5. Render
 // ------------------------------------------------------------------
@@ -228,6 +386,7 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 
 	$current_time = time();
 	$time_hash    = init_plugin_suite_void_shield_get_time_hash( $current_time, $context );
+	$js_proof     = init_plugin_suite_void_shield_get_js_proof( $current_time, $context );
 
 	// Read the saved setting first; the filter still allows a per-request developer override on top of it.
 	$js_delay = absint( apply_filters( 'init_plugin_suite_void_shield_js_delay', absint( get_option( 'init_plugin_suite_void_shield_js_delay', 1000 ) ) ) );
@@ -299,175 +458,334 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	$headless_enabled     = ( '1' === get_option( 'init_plugin_suite_void_shield_headless_detection', '1' ) ) ? 'true' : 'false';
 	$interaction_required = ( '1' === get_option( 'init_plugin_suite_void_shield_require_interaction', '0' ) ) ? 'true' : 'false';
 	$lazy_fetch_enabled   = ( '1' === get_option( 'init_plugin_suite_void_shield_lazy_fetch', '0' ) ) ? 'true' : 'false';
+	$submit_hold_enabled  = init_plugin_suite_void_shield_is_submit_hold_context( $context ) ? 'true' : 'false';
 	$rest_base_url        = esc_url_raw( rest_url( INIT_PLUGIN_SUITE_VOID_SHIELD_NAMESPACE . '/token' ) );
 
+	// Submit Hold timing. The held submission is only released once the
+	// server-side Minimum Submit Time for this context is guaranteed to be
+	// met: the server compares whole-second timestamps, and floor(a + d) -
+	// floor(a) is never less than floor(d), so waiting at least the minimum
+	// (plus a small safety margin for clock/network jitter) measured from a
+	// moment that is never earlier than the token's own issue time is
+	// always enough. The anchor is script init for a baked-in token (the
+	// page was necessarily rendered before it), or the moment a Lazy Fetch
+	// response arrived for a refreshed one (the server issued it before
+	// replying). A pending Lazy Fetch request is waited for, up to a cap,
+	// so a submission never races a token that is about to be replaced.
+	$min_submit_ms  = ( init_plugin_suite_void_shield_get_min_time_for_context( $context ) * 1000 ) + 300;
+	$fetch_wait_max = absint( apply_filters( 'init_plugin_suite_void_shield_submit_hold_fetch_wait', 4000, $context ) );
+
 	// Layer: JavaScript + lightweight headless-browser detection, plus an
-	// optional real-interaction check. `navigator.webdriver` is set to true
-	// by Selenium/Puppeteer/Playwright unless deliberately masked, and a
-	// real browser window never reports 0x0 outer dimensions, so both are
-	// cheap, low-false-positive signals. The interaction check catches
-	// bots that simply sleep() past the delay: it listens for one genuine
-	// mouse, keyboard, touch, or scroll event (any of which a real visitor
-	// naturally triggers while reading/filling the page) before the timer
-	// fires, without recording anything about that event.
+	// optional real-interaction check. The script produces one of three
+	// verdicts once the (jittered) delay elapses:
 	//
-	// The interaction verdict is finalized twice, not once. Originally the
-	// hidden token's value was only ever written inside the delayed
-	// setTimeout below: if no qualifying event had happened by the time it
-	// fired, the field was permanently stamped 'no_interaction', even if the
-	// visitor's very next action -- the click that submits the form -- would
-	// itself have satisfied the check an instant later. This is exactly what
-	// happens on a login form the browser has already autofilled: a real
-	// visitor does nothing else on the page (no mouse movement, no typing,
-	// nothing to scroll to) until they click "Log in", so if that click
-	// lands even slightly after the delay has already elapsed and stamped
-	// the field, a genuine visitor was permanently misjudged as a bot with
-	// no way to correct it. The fix re-runs the same verdict once more, at
-	// the moment the form actually submits, but ONLY ever upgrades an
-	// already-stamped 'no_interaction' to 'human_verified' -- and only if a
-	// qualifying interaction event (the very click that triggered this
-	// submission counts, since `markInteracted` for 'pointerdown'/'keydown'
-	// runs synchronously before the browser's own 'submit' event fires) has
-	// now genuinely happened. A bot with zero interaction events is
-	// completely unaffected: `interacted` is still false at submit time, so
-	// the value is left exactly as the timer already set it. This
-	// resubmission hook is only attached when "Require Real User
-	// Interaction" is enabled in the first place -- when it's off (the
-	// default), nothing here changes, and the delay continues to enforce
-	// its original minimum-wait-before-a-valid-token-exists behavior with
-	// no new way for a script to submit before that delay elapses.
+	// - 'bot': a cheap, low-false-positive automation signal was found.
+	// `navigator.webdriver` is set by Selenium/Puppeteer/Playwright unless
+	// deliberately masked; a real browser window never reports 0x0 outer
+	// dimensions; `HeadlessChrome`/`PhantomJS` only appear in the UA of a
+	// windowless automation build; `callPhantom`/`_phantom`/`__nightmare`/
+	// `domAutomation*` globals are injected only by those frameworks; and
+	// ChromeDriver leaves `$cdc_`/`$wdc_`/`cdc_` markers on `document` or
+	// `window`. None of these exist in an ordinary browsing session.
+	// - 'no_interaction': Require Real User Interaction is enabled and no
+	// qualifying mouse/keyboard/touch/scroll event has happened yet (an
+	// event only counts once a short minimum delay has passed since init,
+	// so a single synthetic event fired at page load does not satisfy it).
+	// - 'human': anything else. The value written for it is the signed,
+	// context-bound proof (see init_plugin_suite_void_shield_get_js_proof()),
+	// reassembled from its sealed form, not a fixed string.
 	//
-	// Optional lazy-fetch layer: the time/hash pair rendered into the page
-	// above reflects the moment this PHP ran, which on a full-page-cached
-	// page is the moment the cache was generated -- not the moment a real
-	// visitor actually loaded it. When enabled, this replaces that baked-in
-	// pair with a freshly issued one from a lightweight REST endpoint as
-	// soon as the page truly loads in the visitor's browser, so the
-	// Minimum/Maximum Submit Time gates measure real visit time instead of
-	// cache age. If the request fails (or JS/fetch is unavailable), the
-	// baked-in value is left untouched as a fallback, so this only ever
-	// helps and never introduces a new failure mode.
+	// The 'no_interaction' verdict can be upgraded to 'human' at submit
+	// time, but only if a qualifying event has genuinely happened by then
+	// (the submit click itself counts, since 'pointerdown'/'keydown' fire
+	// before 'submit'); a bot with zero interaction events is unaffected.
 	//
-	// The init routine below checks document.readyState instead of relying
-	// solely on a 'DOMContentLoaded' listener. Several JS-delay/defer
-	// optimizations (present in most caching/performance plugins) postpone
-	// running inline scripts like this one until the visitor's first
-	// interaction with the page -- which, on a comment form, is often the
-	// click on the submit button itself. By the time such a deferred script
-	// actually executes, 'DOMContentLoaded' has already fired, so a listener
-	// registered for it at that point never runs, the token silently never
-	// gets set, and a genuine first-time visitor's submission is rejected as
-	// unverified -- succeeding only on a retry once the script has caught up
-	// in the background. Running immediately when the document is already
-	// past the loading state closes that gap without weakening any check.
+	// Optional Lazy Fetch: the baked-in time/hash pair reflects when this
+	// PHP ran, which on a full-page-cached page is when the cache was built.
+	// When enabled, a fresh time, hash, and sealed proof are fetched as soon
+	// as the page truly loads and all three are swapped in together, so the
+	// submitted fields always stay mutually consistent. If the request fails
+	// the baked-in values are kept, so this can only help.
 	//
-	// The script below also never emits a bare '&' character (nested ifs
-	// instead of '&&', String.fromCharCode(38) instead of a literal '&' in
-	// a URL separator). Some environments -- an HTML minifier, a
-	// multilingual plugin's string scanner, a security/output-filtering
-	// plugin, or WordPress's own convert_chars() if this markup is ever
-	// routed through it -- normalize a bare ampersand in page output into
-	// '&#038;'. Browsers never decode HTML entities inside <script>
-	// content (it's raw text, not markup), so a literal '&&' would become
-	// the literal text '&#038;&#038;' on the page and break JS parsing
-	// entirely. Comments are also kept out of the emitted script below,
-	// both to keep guarded pages lean (this renders on every comment form,
-	// login form, etc.) and to avoid spelling out the detection logic in
-	// page source for anyone reading it.
-	$js = "(function() {
-		function initVoidShieldGuard() {
-			var jsInput = document.getElementById('" . esc_js( $js_name ) . "');
-			if (!jsInput) {
-				return;
+	// Submit Hold (see init_plugin_suite_void_shield_is_submit_hold_context()):
+	// on natively-submitted forms, a submit that arrives before the verdict
+	// exists, before the Minimum Submit Time is guaranteed to be met, or
+	// while a Lazy Fetch is still in flight is cancelled in the capture
+	// phase (before any theme/plugin handler sees it) and replayed
+	// automatically once everything is ready, via requestSubmit() so the
+	// clicked button's name/value is still sent. HTMLFormElement.prototype
+	// methods are called directly because a field named "submit" (e.g. the
+	// comment form's own submit button) shadows form.submit on the element.
+	//
+	// The init routine checks document.readyState instead of relying solely
+	// on 'DOMContentLoaded', so it still runs when a JS-delay/defer
+	// optimization postpones inline scripts until after that event. The
+	// script never emits a bare '&' character (nested ifs instead of '&&',
+	// String.fromCharCode(38) for the URL separator): some minifiers,
+	// multilingual plugins, output filters, or WordPress's own
+	// convert_chars() rewrite a bare ampersand into '&#038;', which browsers
+	// never decode inside <script> content, breaking the whole script.
+	// Comments are kept out of the emitted script to keep guarded pages lean
+	// and to avoid spelling out the detection logic in page source.
+	$seal = init_plugin_suite_void_shield_seal_js_proof( $js_proof );
+
+	$js = <<<'INITVOIDSHIELDJS'
+(function() {
+	function initVoidShieldGuard() {
+		var jsInput = document.getElementById('__IVS_JS_NAME__');
+		if (!jsInput) {
+			return;
+		}
+		var headlessCheckEnabled = __IVS_HEADLESS__;
+		var interactionRequired = __IVS_INTERACTION__;
+		var lazyFetchEnabled = __IVS_LAZY__;
+		var submitHoldEnabled = __IVS_HOLD__;
+		var minInteractionDelay = __IVS_MIN_INTERACTION__;
+		var minSubmitMs = __IVS_MIN_SUBMIT__;
+		var fetchWaitMax = __IVS_FETCH_WAIT__;
+		var initAt = Date.now();
+		var timeAnchor = initAt;
+		var fetchPending = false;
+		var interacted = false;
+		var holding = false;
+		var verdict = '';
+		var unseal = function(key, codes) {
+			var out = '';
+			for (var i = codes.length - 1; i >= 0; i--) {
+				out += String.fromCharCode(codes[i] ^ key);
 			}
-			var headlessCheckEnabled = " . $headless_enabled . ';
-			var interactionRequired = ' . $interaction_required . ';
-			var lazyFetchEnabled = ' . $lazy_fetch_enabled . ';
-			var minInteractionDelay = ' . $min_interaction_delay . ";
-			var initAt = Date.now();
-			var interacted = false;
-			if (interactionRequired) {
-				var voidShieldInteractionEvents = ['mousemove', 'keydown', 'pointerdown', 'touchstart', 'scroll'];
-				var markInteracted = function() {
-					if (interacted) {
-						return;
+			return out;
+		};
+		var proof = unseal(__IVS_SEAL_KEY__, [__IVS_SEAL_CODES__]);
+		var writeVerdict = function() {
+			if (verdict === 'bot') {
+				jsInput.value = 'bot_detected';
+			} else if (verdict === 'no_interaction') {
+				jsInput.value = 'no_interaction';
+			} else if (verdict === 'human') {
+				jsInput.value = proof;
+			}
+		};
+		var looksAutomated = function() {
+			if (navigator.webdriver === true) {
+				return true;
+			}
+			if (window.outerWidth === 0) {
+				if (window.outerHeight === 0) {
+					return true;
+				}
+			}
+			if (/HeadlessChrome|PhantomJS/.test(navigator.userAgent || '')) {
+				return true;
+			}
+			if (window.callPhantom || window._phantom || window.__nightmare || window.domAutomation || window.domAutomationController) {
+				return true;
+			}
+			try {
+				for (var docKey in document) {
+					if (docKey.indexOf('$cdc_') === 0 || docKey.indexOf('$wdc_') === 0) {
+						return true;
 					}
-					if (Date.now() - initAt < minInteractionDelay) {
-						return;
+				}
+				var winKeys = Object.getOwnPropertyNames(window);
+				for (var w = 0; w < winKeys.length; w++) {
+					if (winKeys[w].indexOf('cdc_') === 0) {
+						return true;
 					}
-					interacted = true;
-					voidShieldInteractionEvents.forEach(function(evt) {
-						document.removeEventListener(evt, markInteracted);
-					});
-				};
+				}
+			} catch (e) {}
+			return false;
+		};
+		if (interactionRequired) {
+			var voidShieldInteractionEvents = ['mousemove', 'keydown', 'pointerdown', 'touchstart', 'scroll'];
+			var markInteracted = function() {
+				if (interacted) {
+					return;
+				}
+				if (Date.now() - initAt < minInteractionDelay) {
+					return;
+				}
+				interacted = true;
 				voidShieldInteractionEvents.forEach(function(evt) {
-					document.addEventListener(evt, markInteracted, { passive: true });
+					document.removeEventListener(evt, markInteracted);
 				});
+			};
+			voidShieldInteractionEvents.forEach(function(evt) {
+				document.addEventListener(evt, markInteracted, { passive: true });
+			});
+		}
+		var upgradeVerdict = function() {
+			if (interactionRequired) {
+				if (interacted) {
+					if (verdict === 'no_interaction') {
+						verdict = 'human';
+						writeVerdict();
+					}
+				}
 			}
-			if (lazyFetchEnabled) {
-				if (window.fetch) {
-					var timeInput = document.getElementById('" . esc_js( $time_name ) . "');
-					var hashInput = document.getElementById('" . esc_js( $hash_name ) . "');
-					if (timeInput) {
-						if (hashInput) {
-							var base = '" . esc_js( $rest_base_url ) . "';
-							var sep = base.indexOf('?') > -1 ? String.fromCharCode(38) : '?';
-							var url = base + sep + 'context=' + encodeURIComponent('" . esc_js( $context ) . "');
-							fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store' })
-								.then(function(response) { return response.ok ? response.json() : null; })
-								.then(function(data) {
-									if (data) {
-										if (data.time) {
-											if (data.hash) {
-												timeInput.value = data.time;
-												hashInput.value = data.hash;
+		};
+		if (lazyFetchEnabled) {
+			if (window.fetch) {
+				var timeInput = document.getElementById('__IVS_TIME_NAME__');
+				var hashInput = document.getElementById('__IVS_HASH_NAME__');
+				if (timeInput) {
+					if (hashInput) {
+						var base = '__IVS_REST_URL__';
+						var sep = base.indexOf('?') > -1 ? String.fromCharCode(38) : '?';
+						var url = base + sep + 'context=' + encodeURIComponent('__IVS_CONTEXT__');
+						fetchPending = true;
+						fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store' })
+							.then(function(response) { return response.ok ? response.json() : null; })
+							.then(function(data) {
+								if (data) {
+									if (data.time) {
+										if (data.hash) {
+											if (data.seal) {
+												if (data.seal.p) {
+													timeInput.value = data.time;
+													hashInput.value = data.hash;
+													proof = unseal(data.seal.k, data.seal.p);
+													timeAnchor = Date.now();
+													writeVerdict();
+												}
 											}
 										}
 									}
-								})
-								.catch(function() {});
-						}
+								}
+								fetchPending = false;
+							})
+							.catch(function() {
+								fetchPending = false;
+							});
 					}
 				}
 			}
-			setTimeout(function() {
-				var isBot = false;
-				if (headlessCheckEnabled) {
-					if (navigator.webdriver === true) {
-						isBot = true;
-					}
-					if (window.outerWidth === 0) {
-						if (window.outerHeight === 0) {
-							isBot = true;
-						}
-					}
+		}
+		setTimeout(function() {
+			if (headlessCheckEnabled) {
+				if (looksAutomated()) {
+					verdict = 'bot';
 				}
-				if (isBot) {
-					jsInput.value = 'bot_detected';
-				} else if (interactionRequired) {
-					jsInput.value = interacted ? 'human_verified' : 'no_interaction';
+			}
+			if (verdict === '') {
+				if (interactionRequired) {
+					verdict = interacted ? 'human' : 'no_interaction';
 				} else {
-					jsInput.value = 'human_verified';
-				}
-			}, " . absint( $js_delay_actual ) . ');
-			if (interactionRequired) {
-				if (jsInput.form) {
-					jsInput.form.addEventListener("submit", function() {
-						if (interacted) {
-							if (jsInput.value === "no_interaction") {
-								jsInput.value = "human_verified";
-							}
-						}
-					});
+					verdict = 'human';
 				}
 			}
+			writeVerdict();
+		}, __IVS_DELAY__);
+		var form = jsInput.form;
+		if (!form) {
+			return;
 		}
-		if (document.readyState === "loading") {
-			document.addEventListener("DOMContentLoaded", initVoidShieldGuard);
-		} else {
-			initVoidShieldGuard();
-		}
-	})();';
+		var isReady = function() {
+			if (verdict === '') {
+				return false;
+			}
+			if (Date.now() - timeAnchor < minSubmitMs) {
+				return false;
+			}
+			if (fetchPending) {
+				if (Date.now() - initAt < fetchWaitMax) {
+					return false;
+				}
+			}
+			return true;
+		};
+		var resubmit = function(submitter) {
+			var proto = window.HTMLFormElement ? window.HTMLFormElement.prototype : null;
+			if (!proto) {
+				return;
+			}
+			if (proto.requestSubmit) {
+				try {
+					if (submitter) {
+						proto.requestSubmit.call(form, submitter);
+					} else {
+						proto.requestSubmit.call(form);
+					}
+					return;
+				} catch (e) {}
+			}
+			if (submitter) {
+				if (submitter.name) {
+					var carrier = document.createElement('input');
+					carrier.type = 'hidden';
+					carrier.name = submitter.name;
+					carrier.value = submitter.value || '';
+					form.appendChild(carrier);
+				}
+			}
+			proto.submit.call(form);
+		};
+		document.addEventListener('submit', function(event) {
+			if (event.target !== form) {
+				return;
+			}
+			upgradeVerdict();
+			if (!submitHoldEnabled) {
+				return;
+			}
+			if (!holding) {
+				if (isReady()) {
+					return;
+				}
+			}
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			if (holding) {
+				return;
+			}
+			holding = true;
+			var submitter = event.submitter || null;
+			if (submitter) {
+				submitter.setAttribute('aria-busy', 'true');
+			}
+			var release = function() {
+				if (!isReady()) {
+					setTimeout(release, 100);
+					return;
+				}
+				upgradeVerdict();
+				holding = false;
+				if (submitter) {
+					submitter.removeAttribute('aria-busy');
+				}
+				resubmit(submitter);
+			};
+			setTimeout(release, 100);
+		}, true);
+	}
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', initVoidShieldGuard);
+	} else {
+		initVoidShieldGuard();
+	}
+})();
+INITVOIDSHIELDJS;
+
+	$js = strtr(
+		$js,
+		array(
+			'__IVS_JS_NAME__'         => esc_js( $js_name ),
+			'__IVS_TIME_NAME__'       => esc_js( $time_name ),
+			'__IVS_HASH_NAME__'       => esc_js( $hash_name ),
+			'__IVS_CONTEXT__'         => esc_js( $context ),
+			'__IVS_REST_URL__'        => esc_js( $rest_base_url ),
+			'__IVS_HEADLESS__'        => $headless_enabled,
+			'__IVS_INTERACTION__'     => $interaction_required,
+			'__IVS_LAZY__'            => $lazy_fetch_enabled,
+			'__IVS_HOLD__'            => $submit_hold_enabled,
+			'__IVS_MIN_INTERACTION__' => (string) absint( $min_interaction_delay ),
+			'__IVS_MIN_SUBMIT__'      => (string) absint( $min_submit_ms ),
+			'__IVS_FETCH_WAIT__'      => (string) $fetch_wait_max,
+			'__IVS_DELAY__'           => (string) absint( $js_delay_actual ),
+			'__IVS_SEAL_KEY__'        => (string) absint( $seal['k'] ),
+			'__IVS_SEAL_CODES__'      => implode( ',', array_map( 'absint', $seal['p'] ) ),
+		)
+	);
 
 	// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline script tag, not an enqueued asset.
 	$script = wp_get_inline_script_tag(
@@ -539,6 +857,8 @@ function init_plugin_suite_void_shield_is_account_context( $context ) {
 		'lostpassword',
 		'multisite_signup',
 		'woocommerce_register',
+		'woocommerce_login',
+		'woocommerce_lostpassword',
 		'buddypress_register',
 	);
 
@@ -612,6 +932,28 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 		}
 	}
 
+	// Browser-reported cross-site submission. See
+	// init_plugin_suite_void_shield_is_cross_site_request() for why only a
+	// positive `cross-site` value counts and a missing header never does.
+	if ( '1' === get_option( 'init_plugin_suite_void_shield_block_cross_site', '1' )
+		&& init_plugin_suite_void_shield_is_cross_site_request() ) {
+		/**
+		 * Force-exempt a request from the Block Cross-Site Submissions check.
+		 *
+		 * Intended for a setup where a form on a different registrable
+		 * domain legitimately posts to this site (e.g. a Multisite network
+		 * whose subsites are mapped to unrelated domains and share one
+		 * login form). Every other layer still applies to the request.
+		 *
+		 * @param bool   $exempt  Whether to exempt this request. Default false.
+		 * @param string $context Guard context being verified.
+		 */
+		if ( ! apply_filters( 'init_plugin_suite_void_shield_cross_site_exempt', false, $context ) ) {
+			init_plugin_suite_void_shield_record_block( $context, 'cross_site_request' );
+			return false;
+		}
+	}
+
 	$hp_text   = init_plugin_suite_void_shield_get_field_name( $context, 'text' );
 	$hp_check  = init_plugin_suite_void_shield_get_field_name( $context, 'checkbox' );
 	$time_name = init_plugin_suite_void_shield_get_field_name( $context, 'time' );
@@ -639,7 +981,10 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 		return false;
 	}
 
-	if ( 'human_verified' !== $js_value ) {
+	// The actual proof value is checked in Gate 3b below, once the time
+	// token it is bound to has itself been validated. Here only a missing
+	// value is rejected (the script never ran, or never reached its verdict).
+	if ( '' === $js_value ) {
 		init_plugin_suite_void_shield_record_block( $context, 'js_token' );
 		return false;
 	}
@@ -659,6 +1004,18 @@ function init_plugin_suite_void_shield_is_submission_human( $context ) {
 
 	if ( ! hash_equals( $expected_hash, $provided_hash ) ) {
 		init_plugin_suite_void_shield_record_block( $context, 'time_token_invalid' );
+		return false;
+	}
+
+	// Gate 3b: the JS proof must match the one issued for this exact time
+	// token and context. A static value (including the pre-1.11 fixed
+	// `human_verified` string, e.g. from a page still served out of a cache
+	// built before updating) or a proof lifted from a different form or a
+	// different render fails here.
+	$expected_proof = init_plugin_suite_void_shield_get_js_proof( $submit_time, $context );
+
+	if ( ! hash_equals( $expected_proof, $js_value ) ) {
+		init_plugin_suite_void_shield_record_block( $context, 'js_proof_invalid' );
 		return false;
 	}
 

@@ -321,6 +321,16 @@ function init_plugin_suite_void_shield_guard_lostpassword( $errors ) {
 		return;
 	}
 
+	// WooCommerce's lost-password form fires this same action. It is
+	// verified by its own guard, under its own context, which is always in
+	// effect while this one is enabled -- see
+	// init_plugin_suite_void_shield_woocommerce_lostpassword_enabled().
+	if ( function_exists( 'init_plugin_suite_void_shield_is_woocommerce_lostpassword_request' )
+		&& class_exists( 'WooCommerce' )
+		&& init_plugin_suite_void_shield_is_woocommerce_lostpassword_request() ) {
+		return;
+	}
+
 	if ( ! init_plugin_suite_void_shield_is_submission_human( 'lostpassword' ) ) {
 		$errors->add(
 			'init_void_shield_blocked',
