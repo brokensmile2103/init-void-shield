@@ -4,7 +4,7 @@
 
 **No CAPTCHA. No external JS. No database clutter. No user friction.**
 
-[![Version](https://img.shields.io/badge/stable-v1.11-blue.svg)](https://wordpress.org/plugins/init-void-shield/)
+[![Version](https://img.shields.io/badge/stable-v1.12-blue.svg)](https://wordpress.org/plugins/init-void-shield/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
@@ -15,7 +15,7 @@
 - Zero database footprint — no tables, no rows; stats use a single non-autoloaded option
 - Zero external JS / CDN calls — everything is self-contained
 - No CAPTCHA, no puzzles, no "click all buses"
-- Logged-in users bypassed automatically on the comment form (optional override)
+- Logged-in users bypassed automatically on the comment form (optional override — now fully working for logged-in commenters and Dashboard replies *(fixed in 1.12)*)
 - Every guard beyond the core comment form is opt-in — no new form is silently guarded when you update
 - A genuine visitor who submits before the guard is ready (e.g. right after autofill) is briefly held and submitted automatically, never rejected *(new in 1.11)*
 - Bots receive HTTP 200 OK on the comment form — they think they succeeded and move on
@@ -29,12 +29,14 @@ Perfect for blogs, communities, news sites, online stores, or any WordPress site
   1. Dynamic field names — derived from context + site salt (plus an optional custom prefix) so bots cannot hardcode field names
   2. CSS-clipped honeypots — a text field and a checkbox hidden with rotating CSS techniques (never `display:none` or `visibility:hidden`, the two patterns CSS-aware bots specifically look for and skip) that bots fill but humans never see
   3. Signed, context-bound, self-expiring time tokens — each form carries a timestamp + HMAC hash verified server-side with `hash_equals()` to prevent timing attacks. The hash is bound to the specific form it was issued for and rejected once it goes stale, so a token cannot be captured on one form and replayed against another, or cached and replayed indefinitely
-  4. JavaScript + headless-browser verification — a hidden token is injected after a configurable delay plus a small random jitter, so the exact wait can't be read from the page source and timed around, and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window, `HeadlessChrome`/`PhantomJS` User-Agents, Selenium/ChromeDriver traces *(new in 1.11)*) from real Selenium/Puppeteer/Playwright sessions. **The token itself is a signed proof unique to the exact form it was issued for**, never a fixed value, and it's embedded in the page only in sealed form — a bot that scrapes the static HTML and replays hidden field values can no longer copy it *(new in 1.11)*. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't
+  4. JavaScript + headless-browser verification — a hidden token is injected after a configurable delay plus a small random jitter, so the exact wait can't be read from the page source and timed around, and the script flags common automation signals (`navigator.webdriver`, a zero-size browser window, `HeadlessChrome`/`PhantomJS` User-Agents, Selenium/ChromeDriver traces *(new in 1.11)*, Playwright's page bindings — caught even with `navigator.webdriver` masked *(new in 1.12)*) from real Selenium/Puppeteer/Playwright sessions. **The token itself is a signed proof unique to the exact form it was issued for**, never a fixed value, and it's embedded in the page only in sealed form — a bot that scrapes the static HTML and replays hidden field values can no longer copy it *(new in 1.11)*. Static crawlers, instant bots, and unmasked headless browsers all get caught; real users don't
   5. Submit Hold *(new in 1.11)* — on natively-submitted forms (WordPress core forms, comments, WooCommerce account forms, bbPress, BuddyPress), a visitor who clicks submit before the guard is ready — typically right after the browser autofills a saved password — is held for a moment and submitted automatically once it is, instead of being rejected. Nothing is relaxed server-side; every gate still requires exactly what it required before
-  6. Non-Browser User-Agent detection *(on by default, extended in 1.11)* — rejects submissions whose User-Agent identifies a scripted HTTP client (curl, Python requests, Go, Scrapy, HeadlessChrome, HTTPX, aiohttp, axios, undici, HTTPie, Colly, and similar) rather than a real browser, catching a bot that skips JavaScript entirely and simply replays the static form fields
+  6. Non-Browser User-Agent detection *(on by default, extended in 1.12)* — rejects submissions whose User-Agent identifies a scripted HTTP client (curl, Python requests, Go, Scrapy, HeadlessChrome, HTTPX, aiohttp, axios, undici, HTTPie, Colly, Bun, Deno, Got, Mechanize, Ruby, ZGrab, Nuclei, and similar) rather than a real browser, catching a bot that skips JavaScript entirely and simply replays the static form fields. Bare placeholder values no browser sends on its own — a lone `Mozilla/5.0`, `Mozilla/4.0`, `Mozilla`, `node`, or `-` — are rejected too *(new in 1.12)*
   7. Block Cross-Site Submissions *(new in 1.11, on by default)* — rejects a submission the browser itself reports as sent from another website via the `Sec-Fetch-Site` request header, which page scripts cannot forge and privacy extensions don't strip. A request without the header is never rejected by this check
-  8. Block REST API Comments *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover
-- **Comment content filters** *(new in 1.11, each opt-in and off by default)* — Maximum Links per Comment, Block BBCode Links (`[url]…[/url]` / `[link]…[/link]`), and Block URLs in Author Name. Unlike the behavioral layers above, these read what was actually written, so they also catch spam posted by a real person or a real browser, and they apply even to comments that bypass the honeypot checks (e.g. wpDiscuz)
+  8. Block REST API Comments *(optional)* — rejects comments posted directly through the `wp/v2/comments` REST endpoint, which the classic form-based layers cannot cover. Users who can moderate comments are never blocked by it *(new in 1.12)*
+  9. Full comment form coverage *(new in 1.12)* — the guard is rendered on `comment_form_after_fields` for guests, `comment_form_logged_in_after` for logged-in users, and `comment_form` as a fallback when a theme has removed every guest field; it is printed once per form
+- **Comment content filters** *(each opt-in and off by default)* — Maximum Links per Comment, Block BBCode Links (`[url]…[/url]` / `[link]…[/link]`), Block URLs in Author Name, and Block Comments in Selected Scripts *(new in 1.12)*, which rejects a comment when at least 30% of the letters in its text or author name belong to a script you check (Cyrillic, Han, Japanese kana, Hangul, Arabic, Hebrew, Greek, Thai, Devanagari) — Latin-script languages such as English or Vietnamese are never affected. Unlike the behavioral layers above, these read what was actually written, so they also catch spam posted by a real person or a real browser, and they apply even to comments that bypass the honeypot checks (e.g. wpDiscuz)
+- **Pingbacks & trackbacks** *(new in 1.12)* — sent server-to-server, they can never carry the honeypot fields, so they are blocked while the comment guard is enabled (as before) and now recorded under their own "Pingback or trackback" reason. Enable **Allow Pingbacks & Trackbacks** to receive them; they are then left to WordPress's own discussion settings and moderation queue
 - **WordPress core form guards** *(off by default)* — the same honeypot engine can protect the default login, registration, lost-password, and Multisite signup forms, enabled individually
 - **Form plugin integrations** *(off by default)* — one-click honeypot guard for Contact Form 7, WPForms, and Gravity Forms; each only activates if the corresponding plugin is detected active
 - **Community & e-commerce integrations** *(off by default)* — one-click honeypot guard for WooCommerce (My Account registration, and, new in 1.11, the WooCommerce Login and Lost Password forms), bbPress (New Topic and Reply forms), and BuddyPress (registration form); each only activates if the corresponding plugin is detected active
@@ -45,7 +47,7 @@ Perfect for blogs, communities, news sites, online stores, or any WordPress site
 - **Dashboard widget** *(off by default)* — a compact "Blocked Submissions" summary on the WordPress Dashboard, showing the top blocked channels and reasons
 - **Custom field prefix** — change the honeypot field-name prefix if you suspect a spammer has targeted your site specifically
 - **CSS trap rotation** — randomizes the hiding technique and trap field order on every render, so bots can't learn one fixed pattern
-- **Lightweight statistics** *(opt-out)* — blocked-submission counters by channel and reason, stored in a single non-autoloaded option; no per-submission logs, no personal data
+- **Lightweight statistics** *(opt-out)* — blocked-submission counters by channel and reason, plus the date counting started *(new in 1.12)*, stored in a single non-autoloaded option; no per-submission logs, no personal data
 - **Soft-kill responses** — spam bots hitting the comment form get HTTP 200 OK, deceiving them into thinking the comment was posted successfully
 - **Logged-in user bypass** — authenticated users skip comment-form verification by default; enable **Apply to Logged-in Users** if your site has open registration or untrusted members
 - **Configurable thresholds** — adjust minimum submit time, maximum token age (up to 30 days), and JS injection delay to match your audience
@@ -64,7 +66,8 @@ Perfect for blogs, communities, news sites, online stores, or any WordPress site
    - The JS proof is present and matches the one issued for this exact form and time token, and doesn't report a headless-browser or no-interaction signal
    - Time token is valid for this exact form, was submitted neither too fast nor too long after page load
    - *(Optional)* Referer header points to this site, if Require Same-Site Referer is enabled
-   - *(Optional, comments only)* The comment content passes the enabled content filters (link count, BBCode links, author-name URL)
+   - *(Optional, comments only)* The comment content passes the enabled content filters (link count, BBCode links, author-name URL, blocked scripts)
+   - *(Comments only)* Pingbacks and trackbacks are blocked unless **Allow Pingbacks & Trackbacks** is enabled
 4. If any check fails → the submission is rejected (soft HTTP 200 kill on the comment form; a normal validation error on core/form-plugin forms)
 5. *(Optional)* If **Block REST API Comments** is enabled, direct POSTs to `wp/v2/comments` are rejected entirely — closing the gap the classic form layers can't see
 
@@ -80,12 +83,14 @@ Settings → Init Void Shield
 
 **Comments**
 - **Enable / Disable** — master toggle for the comment-form guard
-- **Apply to Logged-in Users** — force verification even for authenticated users
+- **Apply to Logged-in Users** — force verification even for authenticated users; Dashboard replies are never blocked by it *(fixed in 1.12)*
 - **Block REST API Comments** — reject comments posted directly to the REST API endpoint `wp/v2/comments`
 - **Require Same-Site Referer** *(off by default)* — reject a comment submission whose Referer header is missing or points to a different site; disclosed trade-off, see Features above
-- **Maximum Links per Comment** *(new in 1.11, off by default — 0)* — reject a comment containing more links than this
-- **Block BBCode Links** *(new in 1.11, off by default)* — reject a comment containing a complete `[url]…[/url]` or `[link]…[/link]` pair; WordPress never renders BBCode anyway
-- **Block URLs in Author Name** *(new in 1.11, off by default)* — reject a comment whose Name field contains a web address
+- **Maximum Links per Comment** *(off by default — 0)* — reject a comment containing more links than this
+- **Block BBCode Links** *(off by default)* — reject a comment containing a complete `[url]…[/url]` or `[link]…[/link]` pair; WordPress never renders BBCode anyway
+- **Block URLs in Author Name** *(off by default)* — reject a comment whose Name field contains a web address
+- **Block Comments in Selected Scripts** *(new in 1.12, nothing selected by default)* — reject a comment when at least 30% of the letters in its text or author name belong to one of the checked scripts; a genuine comment that only quotes a foreign name or word is not affected
+- **Allow Pingbacks & Trackbacks** *(new in 1.12, off by default)* — let pingbacks and trackbacks through the comment guard
 
 **Timing & Token Engine** — shared by every guarded form, not just comments
 - **Minimum Submit Time** — seconds a content-style form (comments, topics, replies, contact forms) must take between page load and submit (default: 3)
@@ -108,14 +113,14 @@ Settings → Init Void Shield
 **Advanced Protection**
 - **Custom Field Prefix** — prefix used to build honeypot field names (lowercase letters, numbers, underscore only)
 - **CSS Trap Rotation** — randomize the CSS technique and field order used to hide traps on every render
-- **Headless Browser Detection** *(extended in 1.11)* — flag `navigator.webdriver`, zero-size browser windows, `HeadlessChrome`/`PhantomJS` User-Agents, and Selenium/ChromeDriver automation markers via the JS token script; no external calls
-- **Block Non-Browser User Agents** *(on by default, extended in 1.11)* — reject submissions whose User-Agent identifies a known scripted HTTP client; the signature list is filterable
+- **Headless Browser Detection** *(extended in 1.12)* — flag `navigator.webdriver`, zero-size browser windows, `HeadlessChrome`/`PhantomJS` User-Agents, Selenium/ChromeDriver automation markers, and Playwright's page bindings via the JS token script; no external calls. CDP "Runtime.enable" tricks are deliberately not used, since they also flag real visitors who have DevTools open
+- **Block Non-Browser User Agents** *(on by default, extended in 1.12)* — reject submissions whose User-Agent identifies a known scripted HTTP client, or is a bare placeholder value such as `Mozilla/5.0`; both lists are filterable
 - **Block Cross-Site Submissions** *(new in 1.11, on by default)* — reject a submission the browser itself reports as sent from a different website (`Sec-Fetch-Site: cross-site`); only disable if a form on an unrelated domain legitimately posts to your site
 - **Require Real User Interaction** *(off by default)* — also require at least one real mouse, keyboard, touch, or scroll event before a submission is accepted, only counted after a short minimum delay since script start
 - **Lazy Fetch (Cache-Safe Tokens)** *(off by default)* — refresh the time token and its signed JS proof client-side right after the page loads instead of relying only on the value baked in at render time; recommended for sites with aggressive full-page caching
 
 **Statistics** *(on by default, opt-out)*
-- **Track Blocked Submissions** — lightweight, non-autoloaded counters (total, by channel, by reason), with a reset action
+- **Track Blocked Submissions** — lightweight, non-autoloaded counters (total, by channel, by reason, and the date counting started), with a reset action
 - **Show Dashboard Widget** *(off by default)* — a compact "Blocked Submissions" summary on the WordPress Dashboard, visible to users who can manage options
 
 ## Filters for Developers
@@ -145,6 +150,18 @@ add_filter( 'init_plugin_suite_void_shield_skip_content_filters', '__return_true
 add_filter( 'init_plugin_suite_void_shield_comment_content_violation', function ( $reason, $commentdata ) {
     return $reason;
 }, 10, 2 );
+```
+
+**Change how much of a comment must be in a selected script before Block Comments in Selected Scripts rejects it** *(new in 1.12, share of letters 0–1, default 0.3)*:
+```php
+add_filter( 'init_plugin_suite_void_shield_blocked_script_threshold', function ( $threshold ) {
+    return 0.5;
+} );
+```
+
+**Let pingbacks and trackbacks through the comment guard**, overriding the settings-page toggle *(new in 1.12)*:
+```php
+add_filter( 'init_plugin_suite_void_shield_allow_linkbacks', '__return_true' );
 ```
 
 **Override the Login Guard Scope's Referer-based exemption heuristic** (`$referer` is the raw header value that was checked):
@@ -231,6 +248,22 @@ add_filter( 'init_plugin_suite_void_shield_blocked_user_agent_signatures', funct
 } );
 ```
 
+**Customize the list of complete User-Agent values always treated as non-browser** *(new in 1.12, matched against the whole header, case-insensitive)*:
+```php
+add_filter( 'init_plugin_suite_void_shield_blocked_user_agent_exact', function ( $values ) {
+    $values[] = 'my-bare-test-agent';
+    return $values;
+} );
+```
+
+**Customize which guard contexts use the Account Forms Minimum Submit Time:**
+```php
+add_filter( 'init_plugin_suite_void_shield_account_contexts', function ( $contexts, $context ) {
+    $contexts[] = 'my_custom_login';
+    return $contexts;
+}, 10, 2 );
+```
+
 **Customize the pool of CSS techniques used to hide the honeypot fields:**
 ```php
 add_filter( 'init_plugin_suite_void_shield_hidden_style_variants', function ( $variants ) {
@@ -245,10 +278,6 @@ add_filter( 'init_plugin_suite_void_shield_login_blocked_message', function ( $m
     return 'Login blocked.';
 } );
 ```
-
-## Upgrading to 1.11
-
-1.11 replaces the fixed JS token value with a signed, per-form proof. **Purge your page cache (and any CDN cache) once after updating** — a page still served from a cache built before the update contains the old script, and its submissions will fail with a new "Invalid JS proof" reason until the cache is refreshed.
 
 ## Installation
 
