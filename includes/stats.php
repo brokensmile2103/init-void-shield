@@ -64,6 +64,13 @@ function init_plugin_suite_void_shield_record_block( $context, $reason ) {
 		$stats = array();
 	}
 
+	// Remember when counting (re)started, so the totals can be read against
+	// a time span. Only set on the first block after a fresh install or a
+	// reset; counters carried over from before 1.12 have no known start.
+	if ( empty( $stats['total'] ) && empty( $stats['since'] ) ) {
+		$stats['since'] = time();
+	}
+
 	$stats['total'] = isset( $stats['total'] ) ? absint( $stats['total'] ) + 1 : 1;
 
 	if ( ! isset( $stats['by_channel'] ) || ! is_array( $stats['by_channel'] ) ) {
@@ -106,6 +113,7 @@ function init_plugin_suite_void_shield_get_stats() {
 			'by_channel'   => array(),
 			'by_reason'    => array(),
 			'last_blocked' => 0,
+			'since'        => 0,
 		)
 	);
 }

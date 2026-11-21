@@ -23,6 +23,8 @@ $init_plugin_suite_void_shield_options = array(
 	'init_plugin_suite_void_shield_comment_max_links',
 	'init_plugin_suite_void_shield_block_bbcode_links',
 	'init_plugin_suite_void_shield_block_author_url',
+	'init_plugin_suite_void_shield_blocked_scripts',
+	'init_plugin_suite_void_shield_allow_linkbacks',
 	'init_plugin_suite_void_shield_enable_login_guard',
 	'init_plugin_suite_void_shield_login_guard_scope',
 	'init_plugin_suite_void_shield_enable_register_guard',
@@ -47,6 +49,28 @@ $init_plugin_suite_void_shield_options = array(
 	'init_plugin_suite_void_shield_enable_dashboard_widget',
 	'init_plugin_suite_void_shield_stats',
 );
+
+if ( is_multisite() ) {
+	// Settings are stored per site, so on a network every site that saved
+	// them has its own copy. Before 1.12 only the current site's options
+	// (and the unused network-level copies) were removed.
+	$init_plugin_suite_void_shield_site_ids = get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
+		)
+	);
+
+	foreach ( $init_plugin_suite_void_shield_site_ids as $init_plugin_suite_void_shield_site_id ) {
+		switch_to_blog( $init_plugin_suite_void_shield_site_id );
+
+		foreach ( $init_plugin_suite_void_shield_options as $init_plugin_suite_void_shield_option ) {
+			delete_option( $init_plugin_suite_void_shield_option );
+		}
+
+		restore_current_blog();
+	}
+}
 
 foreach ( $init_plugin_suite_void_shield_options as $init_plugin_suite_void_shield_option ) {
 	delete_option( $init_plugin_suite_void_shield_option );

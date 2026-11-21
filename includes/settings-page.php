@@ -37,6 +37,23 @@ function init_plugin_suite_void_shield_sanitize_checkbox( $value ) {
 	return ( isset( $value ) && '1' === $value ) ? '1' : '0';
 }
 
+/**
+ * Sanitize the "Block Comments in Selected Scripts" selection to a list of
+ * known script keys.
+ *
+ * @param mixed $value Raw value (array of script keys when any box is checked).
+ * @return array
+ */
+function init_plugin_suite_void_shield_sanitize_blocked_scripts( $value ) {
+	if ( ! is_array( $value ) ) {
+		return array();
+	}
+
+	$value = array_map( 'sanitize_key', array_map( 'strval', $value ) );
+
+	return array_values( array_intersect( array_keys( init_plugin_suite_void_shield_get_script_patterns() ), $value ) );
+}
+
 // ------------------------------------------------------------------
 // Register Settings
 // ------------------------------------------------------------------
@@ -101,6 +118,23 @@ add_action(
 		register_setting(
 			$group,
 			'init_plugin_suite_void_shield_block_author_url',
+			array(
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_blocked_scripts',
+			array(
+				'type'              => 'array',
+				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_blocked_scripts',
+			)
+		);
+
+		register_setting(
+			$group,
+			'init_plugin_suite_void_shield_allow_linkbacks',
 			array(
 				'sanitize_callback' => 'init_plugin_suite_void_shield_sanitize_checkbox',
 			)
@@ -424,6 +458,28 @@ function init_plugin_suite_void_shield_get_reason_labels() {
 		'too_many_links'     => __( 'Too many links in comment', 'init-void-shield' ),
 		'bbcode_link'        => __( 'BBCode link in comment', 'init-void-shield' ),
 		'author_url'         => __( 'URL in comment author name', 'init-void-shield' ),
+		'blocked_script'     => __( 'Comment written in a blocked script', 'init-void-shield' ),
+		'linkback'           => __( 'Pingback or trackback', 'init-void-shield' ),
+	);
+}
+
+/**
+ * Human-friendly labels for the scripts offered by "Block Comments in
+ * Selected Scripts".
+ *
+ * @return array
+ */
+function init_plugin_suite_void_shield_get_script_labels() {
+	return array(
+		'cyrillic'   => __( 'Cyrillic (Russian, Ukrainian, Bulgarian, ...)', 'init-void-shield' ),
+		'han'        => __( 'Chinese characters (Han, including Japanese kanji)', 'init-void-shield' ),
+		'kana'       => __( 'Japanese kana (Hiragana, Katakana)', 'init-void-shield' ),
+		'hangul'     => __( 'Korean (Hangul)', 'init-void-shield' ),
+		'arabic'     => __( 'Arabic script (Arabic, Persian, Urdu, ...)', 'init-void-shield' ),
+		'hebrew'     => __( 'Hebrew', 'init-void-shield' ),
+		'greek'      => __( 'Greek', 'init-void-shield' ),
+		'thai'       => __( 'Thai', 'init-void-shield' ),
+		'devanagari' => __( 'Devanagari (Hindi, Marathi, Nepali, ...)', 'init-void-shield' ),
 	);
 }
 
@@ -463,6 +519,8 @@ function init_plugin_suite_void_shield_render_settings_page() {
 	$max_links        = absint( get_option( 'init_plugin_suite_void_shield_comment_max_links', 0 ) );
 	$block_bbcode     = get_option( 'init_plugin_suite_void_shield_block_bbcode_links', '0' );
 	$block_author_url = get_option( 'init_plugin_suite_void_shield_block_author_url', '0' );
+	$blocked_scripts  = init_plugin_suite_void_shield_get_blocked_scripts();
+	$allow_linkbacks  = get_option( 'init_plugin_suite_void_shield_allow_linkbacks', '0' );
 
 	$enable_login            = get_option( 'init_plugin_suite_void_shield_enable_login_guard', '0' );
 	$login_guard_scope       = get_option( 'init_plugin_suite_void_shield_login_guard_scope', 'all' );
@@ -601,7 +659,7 @@ function init_plugin_suite_void_shield_render_settings_page() {
 								class="small-text">
 						<span class="description"><?php esc_html_e( 'links', 'init-void-shield' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Reject a comment containing more links than this. Set to 0 (the default) to disable. Unlike the checks above, this and the two content filters below read what the commenter actually wrote, so they also catch spam posted by a real person or a real browser. They also apply to comments that bypass the honeypot checks, such as wpDiscuz comments.', 'init-void-shield' ); ?>
+							<?php esc_html_e( 'Reject a comment containing more links than this. Set to 0 (the default) to disable. Unlike the checks above, this and the content filters below read what the commenter actually wrote, so they also catch spam posted by a real person or a real browser. They also apply to comments that bypass the honeypot checks, such as wpDiscuz comments.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -636,6 +694,43 @@ function init_plugin_suite_void_shield_render_settings_page() {
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'A classic way to sneak a keyword link into the comment byline. The Website field is not affected. Off by default.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<?php esc_html_e( 'Block Comments in Selected Scripts', 'init-void-shield' ); ?>
+					</th>
+					<td>
+						<fieldset>
+							<legend class="screen-reader-text"><span><?php esc_html_e( 'Block Comments in Selected Scripts', 'init-void-shield' ); ?></span></legend>
+							<?php foreach ( init_plugin_suite_void_shield_get_script_labels() as $script_key => $script_label ) : ?>
+								<label style="display:inline-block;min-width:22em;margin:0 0 6px;">
+									<input type="checkbox" name="init_plugin_suite_void_shield_blocked_scripts[]" value="<?php echo esc_attr( $script_key ); ?>" <?php checked( in_array( $script_key, $blocked_scripts, true ) ); ?>>
+									<?php echo esc_html( $script_label ); ?>
+								</label>
+							<?php endforeach; ?>
+						</fieldset>
+						<p class="description">
+							<?php esc_html_e( 'Reject a comment when a real share of its letters (30% by default), or of its author name, is written in one of the checked scripts. Useful when your readers never write in them but spam often does. A genuine comment that only quotes a foreign name or word is not affected, and Latin-script languages (English, Vietnamese, French, ...) never are. Nothing is checked by default.', 'init-void-shield' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="init_plugin_suite_void_shield_allow_linkbacks">
+							<?php esc_html_e( 'Allow Pingbacks & Trackbacks', 'init-void-shield' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="init_plugin_suite_void_shield_allow_linkbacks" id="init_plugin_suite_void_shield_allow_linkbacks" value="1" <?php checked( $allow_linkbacks, '1' ); ?>>
+							<?php esc_html_e( 'Let pingbacks and trackbacks through the comment guard.', 'init-void-shield' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Pingbacks and trackbacks are sent by other servers, not typed into your comment form, so they can never pass the honeypot checks and are blocked while the guard is enabled; most of them are spam. Enable this only if you want to receive them. They are then left to the WordPress discussion settings and moderation queue. Off by default.', 'init-void-shield' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -1144,6 +1239,18 @@ function init_plugin_suite_void_shield_render_stats_panel() {
 				esc_html( human_time_diff( absint( $stats['last_blocked'] ), time() ) )
 			);
 			?>
+		<?php endif; ?>
+		<?php if ( ! empty( $stats['since'] ) ) : ?>
+			<br />
+			<span class="description">
+				<?php
+				printf(
+					// translators: %s: date counting started, e.g. "November 21, 2026".
+					esc_html__( 'Counting since %s.', 'init-void-shield' ),
+					esc_html( date_i18n( get_option( 'date_format' ), absint( $stats['since'] ) ) )
+				);
+				?>
+			</span>
 		<?php endif; ?>
 	</p>
 

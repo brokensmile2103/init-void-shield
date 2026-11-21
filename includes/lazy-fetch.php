@@ -45,10 +45,27 @@ function init_plugin_suite_void_shield_register_token_route() {
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
+					'validate_callback' => 'init_plugin_suite_void_shield_validate_token_context',
 				),
 			),
 		)
 	);
+}
+
+/**
+ * Validate the `context` argument of the token-refresh route.
+ *
+ * Every context the plugin renders (comment_123, login, cf7_4,
+ * woocommerce_login, ...) is a short string of letters, digits, and
+ * underscores; dots, colons, and dashes are also accepted for contexts a
+ * developer adds through init_plugin_suite_void_shield_build_guard_markup().
+ * Anything else is refused before a token is computed for it.
+ *
+ * @param mixed $value Raw parameter value.
+ * @return bool
+ */
+function init_plugin_suite_void_shield_validate_token_context( $value ) {
+	return is_string( $value ) && 1 === preg_match( '/^[A-Za-z0-9_.:-]{1,100}$/', $value );
 }
 
 /**

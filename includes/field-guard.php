@@ -171,9 +171,41 @@ function init_plugin_suite_void_shield_get_blocked_user_agent_signatures() {
 		'undici',
 		'httpie',
 		'colly',
+		'bun/',
+		'deno/',
+		'got (',
+		'mechanize',
+		'ruby',
+		'zgrab',
+		'nuclei',
 	);
 
 	return apply_filters( 'init_plugin_suite_void_shield_blocked_user_agent_signatures', $signatures );
+}
+
+/**
+ * Get the list of complete User-Agent values that are always sent by a
+ * script rather than a browser.
+ *
+ * Unlike the substring signatures above, these only match the WHOLE header
+ * (case-insensitive, surrounding whitespace ignored). A bare `Mozilla/5.0`
+ * is the classic placeholder spam tools send to look like a browser, and
+ * Node.js's built-in fetch() identifies itself as just `node`; no real
+ * browser ever sends either value on its own, while every real browser UA
+ * merely starts with `Mozilla/5.0 (` and is therefore never matched here.
+ *
+ * @return array
+ */
+function init_plugin_suite_void_shield_get_blocked_user_agent_exact() {
+	$values = array(
+		'mozilla',
+		'mozilla/4.0',
+		'mozilla/5.0',
+		'node',
+		'-',
+	);
+
+	return apply_filters( 'init_plugin_suite_void_shield_blocked_user_agent_exact', $values );
 }
 
 /**
@@ -183,10 +215,16 @@ function init_plugin_suite_void_shield_get_blocked_user_agent_signatures() {
  * @return bool
  */
 function init_plugin_suite_void_shield_is_bot_user_agent( $user_agent ) {
-	$user_agent = strtolower( (string) $user_agent );
+	$user_agent = strtolower( trim( (string) $user_agent, " \t\n\r\0\x0B" ) );
 
 	if ( '' === $user_agent ) {
 		return false;
+	}
+
+	foreach ( (array) init_plugin_suite_void_shield_get_blocked_user_agent_exact() as $exact ) {
+		if ( strtolower( trim( (string) $exact, " \t\n\r\0\x0B" ) ) === $user_agent ) {
+			return true;
+		}
 	}
 
 	foreach ( init_plugin_suite_void_shield_get_blocked_user_agent_signatures() as $signature ) {
@@ -484,9 +522,15 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	// deliberately masked; a real browser window never reports 0x0 outer
 	// dimensions; `HeadlessChrome`/`PhantomJS` only appear in the UA of a
 	// windowless automation build; `callPhantom`/`_phantom`/`__nightmare`/
-	// `domAutomation*` globals are injected only by those frameworks; and
-	// ChromeDriver leaves `$cdc_`/`$wdc_`/`cdc_` markers on `document` or
-	// `window`. None of these exist in an ordinary browsing session.
+	// `domAutomation*` globals are injected only by those frameworks;
+	// Playwright installs `__playwright__binding__`/`__pwInitScripts`/
+	// `__playwright_builtins__` on every page it drives (even headed, and
+	// even with navigator.webdriver masked); and ChromeDriver leaves
+	// `$cdc_`/`$wdc_`/`cdc_` markers on `document` or `window`. None of these
+	// exist in an ordinary browsing session. CDP "Runtime.enable" detection
+	// tricks are deliberately NOT used: they also fire for a real visitor
+	// who simply has DevTools open, which breaks the near-zero false
+	// positive rule every check in this script follows.
 	// - 'no_interaction': Require Real User Interaction is enabled and no
 	// qualifying mouse/keyboard/touch/scroll event has happened yet (an
 	// event only counts once a short minimum delay has passed since init,
@@ -579,6 +623,9 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 				return true;
 			}
 			if (window.callPhantom || window._phantom || window.__nightmare || window.domAutomation || window.domAutomationController) {
+				return true;
+			}
+			if ('__playwright__binding__' in window || '__pwInitScripts' in window || '__playwright_builtins__' in window) {
 				return true;
 			}
 			try {
@@ -765,6 +812,12 @@ function init_plugin_suite_void_shield_build_guard_markup( $context ) {
 	}
 })();
 INITVOIDSHIELDJS;
+
+	// The nowdoc above inherits this file's line endings, so a source file
+	// saved with CRLF (e.g. edited on Windows) would print a stray carriage
+	// return on every line of the inline script. Normalize to LF so the
+	// rendered page is identical regardless of how the file was checked out.
+	$js = str_replace( array( "\r\n", "\r" ), "\n", $js );
 
 	$js = strtr(
 		$js,
